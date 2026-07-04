@@ -1,0 +1,847 @@
+{
+  "rewrites": [
+    {
+      "num": 21,
+      "product_id": "gid://shopify/Product/15086313242990",
+      "variant_id": "gid://shopify/ProductVariant/53881180750190",
+      "title": "Mirror Dash Cam 1080P Full HD",
+      "descriptionHtml": "<p>Upgrade your driving safety with the DriveKit 1080P Rearview Mirror Dash Cam, a sleek full HD recording system that mounts directly over your existing rearview mirror. This unobtrusive design keeps your dashboard clean while capturing crystal-clear 1920x1080 video at 30fps, ensuring every detail of your journey is documented with precision.</p>\n<p>Equipped with a large 10-inch IPS touch screen, this dash cam provides a wide-angle 170\u00b0 field of view that eliminates blind spots. The advanced night vision sensor uses WDR technology to deliver clear footage even in low-light conditions, while the G-sensor automatically locks and saves footage upon impact for reliable accident evidence.</p>\n<p>Installation is effortless with the included rubber strap mounts \u2014 no tools or adhesives required. The loop recording feature continuously overwrites old footage, and the parking monitor mode keeps your vehicle protected even when you're away. Compatible with microSD cards up to 128GB for extended recording.</p>\n<ul>\n<li>Resolution: 1080P Full HD (1920x1080) at 30fps</li>\n<li>Screen: 10-inch IPS touch display</li>\n<li>Camera angle: 170\u00b0 wide-angle lens</li>\n<li>Night vision: WDR technology for low-light clarity</li>\n<li>Sensor: G-sensor automatic impact detection</li>\n<li>Storage: Supports microSD up to 128GB (not included)</li>\n<li>Mirror mount: Universal rubber strap attachment</li>\n<li>Features: Loop recording, parking monitor, motion detection</li>\n</ul>",
+      "seo": {
+        "title": "Mirror Dash Cam 1080P Full HD - Rear View, Night Vision, Touch Screen",
+        "description": "DriveKit 1080P rearview mirror dash cam with 10-inch touch screen, 170\u00b0 wide angle, night vision, and G-sensor for reliable road recording."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "149.99",
+      "old_price": "119.99"
+    },
+    {
+      "num": 22,
+      "product_id": "gid://shopify/Product/15086313341294",
+      "variant_id": "gid://shopify/ProductVariant/53881180979566",
+      "title": "Rotating Multi-Angle Door Cup Holder",
+      "descriptionHtml": "<p>The DriveKit Rotating Multi-Angle Door Cup Holder brings hands-free convenience to every drive. Designed to clip securely onto your car door pocket, this versatile holder rotates 360 degrees so you can position your drink at the perfect angle, whether you prefer it upright, tilted, or tucked neatly against the door panel.</p>\n<p>Built from high-strength ABS plastic with a non-slip rubber grip, this cup holder accommodates bottles, cans, and cups from 12oz to 32oz without wobbling or tipping. The universal clip design fits most car door panels without drilling or adhesives, making installation a true tool-free experience. When not in use, it folds flat against the door for a clean look.</p>\n<p>Whether you're on a long road trip or a quick commute, this rotating cup holder keeps your beverages secure and within arm's reach. It doubles as a small organizer for phones, sunglasses, or keys \u2014 a practical upgrade for any vehicle interior.</p>\n<ul>\n<li>Rotation: 360-degree adjustable positioning</li>\n<li>Capacity: 12oz to 32oz bottles, cans, and cups</li>\n<li>Material: High-strength ABS with non-slip rubber grip</li>\n<li>Mounting: Universal clip-on, no drilling required</li>\n<li>Foldable: Folds flat when not in use</li>\n<li>Extra storage: Small pocket for phone or keys</li>\n<li>Fits most car door pockets and panels</li>\n</ul>",
+      "seo": {
+        "title": "Rotating Car Door Cup Holder - Multi-Angle, Universal Fit, Heavy Duty",
+        "description": "DriveKit rotating car door cup holder with 360-degree adjustment, universal clip-on fit, and non-slip grip for bottles and cans up to 32oz."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "79.99",
+      "old_price": "39.99"
+    },
+    {
+      "num": 23,
+      "product_id": "gid://shopify/Product/15086313439598",
+      "variant_id": "gid://shopify/ProductVariant/53881181241710",
+      "title": "Foldable Windshield Sun Shade",
+      "descriptionHtml": "<p>Beat the summer heat with the DriveKit Foldable Windshield Sun Shade, engineered to block up to 99% of harmful UV rays and keep your dashboard, steering wheel, and seats cool even on the hottest days. This premium sun shade reflects solar energy away from your vehicle, reducing interior temperatures by up to 40\u00b0F.</p>\n<p>The innovative accordion-fold design pops open in seconds and collapses into a compact circle for effortless storage in your door pocket or glove box. Made from reinforced polyester with a silver reflective coating, this shade is built to withstand repeated folding without cracking or losing its shape. Elastic edges ensure a snug fit on most sedans, SUVs, and trucks.</p>\n<p>Protect your vehicle's interior from sun damage, fading, and cracking while keeping the cabin comfortable for you and your passengers. The DriveKit sun shade also helps reduce AC load on startup, saving fuel and keeping your air conditioning from working overtime.</p>\n<ul>\n<li>UV protection: Blocks up to 99% of UV rays</li>\n<li>Cooling: Reduces interior temperature by up to 40\u00b0F</li>\n<li>Material: Reinforced polyester with silver reflective coating</li>\n<li>Fold design: Accordion-fold, collapses to compact circle</li>\n<li>Fit: Universal fit for sedans, SUVs, and trucks</li>\n<li>Storage: Fits in door pocket or glove box when folded</li>\n<li>Installation: Pops open in seconds, elastic edge grip</li>\n</ul>",
+      "seo": {
+        "title": "Foldable Car Windshield Sun Shade - UV Protection, Keep Cool, Unive...",
+        "description": "DriveKit foldable car windshield sun shade with UV protection, reflective coating, and accordion-fold design for universal fit and easy storage."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "summer",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "119.99",
+      "old_price": "59.99"
+    },
+    {
+      "num": 24,
+      "product_id": "gid://shopify/Product/15089797595502",
+      "variant_id": "gid://shopify/ProductVariant/53895097483630",
+      "title": "7-Inch Wireless CarPlay Display",
+      "descriptionHtml": "<p>Transform any vehicle into a smart car with the DriveKit 7-Inch Wireless CarPlay Display. This portable touchscreen connects to your iPhone via Bluetooth and WiFi for seamless Apple CarPlay access \u2014 navigate with Maps, stream music, take calls, and use Siri hands-free without touching your phone. Android Auto support is also included for non-Apple users.</p>\n<p>The vibrant 7-inch IPS touchscreen delivers crisp visuals with intuitive touch controls, while the built-in GPS antenna ensures accurate navigation even in areas with weak phone signals. Mount it on your dashboard with the included suction cup or adhesive bracket, and power it through the cigarette lighter adapter for a clean, wire-free installation.</p>\n<p>With mirror screen capability, you can cast your phone's display directly to the larger screen for apps not supported by CarPlay. The dual speaker system provides clear audio output, and the FM transmitter feature lets you route audio through your car's existing stereo system for a premium listening experience.</p>\n<ul>\n<li>Display: 7-inch IPS capacitive touch screen</li>\n<li>Connectivity: Wireless Bluetooth + WiFi</li>\n<li>Compatibility: Apple CarPlay and Android Auto</li>\n<li>GPS: Built-in GPS antenna for offline navigation</li>\n<li>Audio: FM transmitter + dual built-in speakers</li>\n<li>Mounting: Suction cup and adhesive bracket included</li>\n<li>Power: Cigarette lighter adapter (12V)</li>\n<li>Mirror: Screen mirroring for unsupported apps</li>\n</ul>",
+      "seo": {
+        "title": "7-Inch Wireless CarPlay Screen - Auto, GPS, Bluetooth, Touch Display",
+        "description": "DriveKit 7-inch wireless CarPlay display with Bluetooth, GPS, Android Auto support, and FM transmitter for any car dashboard."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 25,
+      "product_id": "gid://shopify/Product/15089797726574",
+      "variant_id": "gid://shopify/ProductVariant/53895097713006",
+      "title": "12V Car Seat Heating Cushion",
+      "descriptionHtml": "<p>Stay warm during cold morning commutes with the DriveKit 12V Car Seat Heating Cushion, a premium heated pad that transforms your cold leather or fabric seat into a cozy haven. Powered directly through your car's cigarette lighter, this cushion delivers consistent, even warmth across the entire seat surface in under 60 seconds.</p>\n<p>Featuring three adjustable temperature settings \u2014 low, medium, and high \u2014 you can dial in the exact warmth level you need. The integrated smart thermostat prevents overheating while maintaining your chosen temperature throughout the drive. The non-slip backing keeps the cushion firmly in place, and the elastic straps ensure a universal fit on most car seats.</p>\n<p>Built with breathable polyester fabric and fire-resistant heating elements, this seat cushion prioritizes both comfort and safety. It's easy to remove and store when warmer weather arrives, making it a seasonal essential that protects you from winter's chill year after year.</p>\n<ul>\n<li>Power: 12V cigarette lighter plug</li>\n<li>Heat settings: 3 levels (low, medium, high)</li>\n<li>Warm-up time: Under 60 seconds</li>\n<li>Safety: Built-in smart thermostat, fire-resistant elements</li>\n<li>Material: Breathable polyester fabric</li>\n<li>Fit: Universal with elastic straps and non-slip backing</li>\n<li>Dimensions: Fits standard car seat size</li>\n</ul>",
+      "seo": {
+        "title": "12V Car Seat Heating Cushion - Heated, Warm, Winter Driving Comfort",
+        "description": "DriveKit 12V car seat heating cushion with 3 temperature settings, fast warm-up, and universal fit for winter driving comfort."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "winter",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 26,
+      "product_id": "gid://shopify/Product/15089797759342",
+      "variant_id": "gid://shopify/ProductVariant/53895097876846",
+      "title": "Car Scratch Remover Repair Kit",
+      "descriptionHtml": "<p>Restore your car's showroom finish with the DriveKit Car Scratch Remover Repair Kit, a professional-grade solution that eliminates light scratches, swirl marks, and oxidation from your vehicle's paintwork. This comprehensive kit includes everything you need to tackle minor paint damage at home without expensive body shop visits.</p>\n<p>The nano-particle compound formula penetrates deep into the clear coat to fill and level scratches, while the included microfiber applicator pads ensure even, streak-free application. Safe for all paint colors and finishes including metallic and pearl coats, this repair kit works on clear coat scratches up to micro-scratch depth without damaging the underlying paint layers.</p>\n<p>From door handle scratches to parking lot door dings, this kit handles the most common paint imperfections drivers encounter. The entire process takes just minutes per scratch \u2014 apply the compound, buff with the pad, and wipe clean for a mirror-like finish that blends seamlessly with your original paint.</p>\n<ul>\n<li>Formula: Nano-particle scratch-filling compound</li>\n<li>Application: Hand-applied with microfiber pads</li>\n<li>Safe for: All paint colors, metallic, pearl, and clear coats</li>\n<li>Removes: Light scratches, swirl marks, oxidation</li>\n<li>Includes: Compound, applicator pads, microfiber towel</li>\n<li>Time: Minutes per scratch for fast results</li>\n<li>Depth: Effective on clear coat scratches</li>\n</ul>",
+      "seo": {
+        "title": "Car Scratch Remover Repair Kit - Paint Restoration, Polish, Auto Care",
+        "description": "DriveKit car scratch remover repair kit with nano-particle compound for paint restoration, swirl marks, and light scratch removal on all colors."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "89.99",
+      "old_price": "44.99"
+    },
+    {
+      "num": 27,
+      "product_id": "gid://shopify/Product/15089797824878",
+      "variant_id": "gid://shopify/ProductVariant/53895098270062",
+      "title": "Car LED Ambient Light Strip",
+      "descriptionHtml": "<p>Set the mood inside your vehicle with the DriveKit Car LED Ambient Light Strip, a dynamic RGB lighting system that transforms your car's interior with millions of color options. Whether you want a calm blue glow for evening drives or a vibrant red pulse for weekend adventures, this light strip puts full atmospheric control at your fingertips.</p>\n<p>Control everything through the included RF remote or download the companion app for your smartphone to access advanced features like music synchronization, timer scheduling, and custom color blending. The 60 LED per meter density ensures smooth, even illumination without visible hotspots, while the adhesive backing bonds securely to any interior surface without leaving residue.</p>\n<p>With a 12V cigarette lighter power source and hidden wire routing, installation is clean and discrete. The strips can be cut to length at marked intervals, allowing you to customize the fit for door panels, footwells, dashboard trim, or trunk areas. Create a personalized lighting experience that makes every drive feel special.</p>\n<ul>\n<li>LEDs: 60 per meter, RGB full-color spectrum</li>\n<li>Control: RF remote + smartphone app</li>\n<li>Features: Music sync, timer, custom color modes</li>\n<li>Power: 12V cigarette lighter adapter</li>\n<li>Install: Adhesive backing, cuttable at marked points</li>\n<li>Application: Door panels, footwells, dash, trunk</li>\n<li>Residue-free removal</li>\n</ul>",
+      "seo": {
+        "title": "Car LED Ambient Light Strip - RGB, App Control, Music Sync, Interior",
+        "description": "DriveKit car LED ambient light strip with RGB colors, app control, music sync, and cuttable design for custom interior car lighting."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "89.99",
+      "old_price": "44.99"
+    },
+    {
+      "num": 28,
+      "product_id": "gid://shopify/Product/15089797857646",
+      "variant_id": "gid://shopify/ProductVariant/53895099285870",
+      "title": "Inflatable Car Travel Air Mattress",
+      "descriptionHtml": "<p>Turn your back seat into a comfortable resting space with the DriveKit Inflatable Car Travel Air Mattress, the ultimate road trip companion for long drives, camping adventures, and emergency rest stops. This full-size air mattress inflates in minutes using the included 12V electric air pump, transforming your vehicle's back seat into a plush sleeping surface.</p>\n<p>Engineered with thick, puncture-resistant PVC and a soft flocked top layer, this mattress provides the comfort of a real bed while conforming to your vehicle's contours. The raised edge design keeps you centered and prevents rolling off during sleep, while the built-in pillow adds neck support for a truly restful rest. Multiple air chambers allow independent inflation for customized firmness.</p>\n<p>Whether you're camping under the stars, waiting out a traffic jam, or need a quick nap during a cross-country drive, this inflatable mattress has you covered. It deflates and folds into a compact carry bag that fits neatly in your trunk, ready whenever adventure calls.</p>\n<ul>\n<li>Material: Thick puncture-resistant PVC with flocked top</li>\n<li>Power: 12V electric air pump (included)</li>\n<li>Inflation time: Under 5 minutes</li>\n<li>Design: Raised edge + built-in pillow for support</li>\n<li>Air chambers: Multi-chamber for adjustable firmness</li>\n<li>Storage: Compact carry bag included</li>\n<li>Fits most sedan and SUV back seats</li>\n</ul>",
+      "seo": {
+        "title": "Inflatable Car Air Mattress - Travel, Camping, Road Trip, Back Seat",
+        "description": "DriveKit inflatable car air mattress with 12V pump, flocked top, and multi-chamber design for road trips, camping, and back seat comfort."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "summer",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "89.99",
+      "old_price": "44.99"
+    },
+    {
+      "num": 29,
+      "product_id": "gid://shopify/Product/15089797890414",
+      "variant_id": "gid://shopify/ProductVariant/53895099711854",
+      "title": "LED Daytime Running Light Bar",
+      "descriptionHtml": "<p>Boost your visibility and road safety with the DriveKit LED Daytime Running Light Bar, a bright, energy-efficient lighting solution that makes your vehicle more noticeable to other drivers during daylight hours. These sleek LED bars mount seamlessly into your front grille or bumper area for a factory-installed look that enhances your car's appearance.</p>\n<p>Using advanced CREE LED chips, this light bar produces an intense, focused beam that cuts through fog, rain, and haze while consuming minimal power from your vehicle's electrical system. The aluminum housing dissipates heat efficiently for long-lasting performance, and the IP67 waterproof rating ensures reliable operation in all weather conditions.</p>\n<p>Easy to install with the included wiring harness and mounting brackets, these daytime running lights wire directly to your ignition for automatic on/off operation. They serve as a powerful safety upgrade that reduces accident risk by making your vehicle up to 30% more visible to oncoming traffic.</p>\n<ul>\n<li>LED type: CREE high-intensity chips</li>\n<li>Waterproof: IP67 rated for all weather</li>\n<li>Housing: Aluminum heat-dissipating body</li>\n<li>Power: Low consumption, direct ignition wiring</li>\n<li>Mounting: Bracket kit included for grille or bumper</li>\n<li>Visibility: Up to 30% more visible to traffic</li>\n<li>Auto on/off with vehicle ignition</li>\n</ul>",
+      "seo": {
+        "title": "LED Daytime Running Light Bar - DRL, Bright, Universal, Safety",
+        "description": "DriveKit LED daytime running light bar with CREE chips, IP67 waterproof rating, and universal mounting for enhanced driving safety and visibility."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "89.99",
+      "old_price": "44.99"
+    },
+    {
+      "num": 30,
+      "product_id": "gid://shopify/Product/15089797923182",
+      "variant_id": "gid://shopify/ProductVariant/53895099810158",
+      "title": "Steering Wheel Tray Table",
+      "descriptionHtml": "<p>The DriveKit Steering Wheel Tray Table turns your steering wheel into a convenient desk surface, perfect for eating meals on the go, working on your laptop during lunch breaks, or organizing small items while parked. This lightweight yet sturdy tray clips securely to your steering wheel in seconds and provides a stable, flat surface right where you need it.</p>\n<p>Molded from durable ABS plastic with a raised lip around the edges, this tray keeps drinks, food, and items from sliding off during use. The dedicated cup holder slot accommodates standard cups and bottles, while the recessed compartments provide organized space for phones, snacks, or office supplies. When you're done, it folds flat and slides under your seat or into your door pocket.</p>\n<p>Whether you're a truck driver taking a roadside break, a parent feeding kids in the back seat, or a professional working between appointments, this steering wheel tray delivers a practical workspace without leaving your vehicle. It's the simple upgrade that makes your car more versatile.</p>\n<ul>\n<li>Material: Durable ABS plastic construction</li>\n<li>Design: Raised edge lip to prevent spills</li>\n<li>Cup holder: Dedicated slot for cups and bottles</li>\n<li>Storage: Recessed compartments for small items</li>\n<li>Foldable: Folds flat for under-seat storage</li>\n<li>Install: Clips to steering wheel in seconds</li>\n<li>Weight capacity: Supports laptop, meals, and supplies</li>\n</ul>",
+      "seo": {
+        "title": "Steering Wheel Tray Table - Car Desk, Food Holder, Portable Worksta...",
+        "description": "DriveKit steering wheel tray table with cup holder, foldable design, and raised edges for eating, working, and organizing in your car."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "89.99",
+      "old_price": "44.99"
+    },
+    {
+      "num": 31,
+      "product_id": "gid://shopify/Product/15089797955950",
+      "variant_id": "gid://shopify/ProductVariant/53895099908462",
+      "title": "Car Aromatherapy Humidifier Diffuser",
+      "descriptionHtml": "<p>Refresh your vehicle's cabin atmosphere with the DriveKit Car Aromatherapy Humidifier Diffuser, a compact 2-in-1 device that combines ultrasonic humidification with essential oil diffusion. This sleek unit adds moisture to dry cabin air while releasing your favorite essential oils, creating a spa-like ambiance that transforms every drive into a sensory experience.</p>\n<p>Using advanced ultrasonic technology, the diffuser breaks down water and essential oils into a fine, cool mist that circulates quietly throughout your vehicle. The 300ml reservoir provides up to 8 hours of continuous operation, and the automatic shut-off feature activates when water levels run low for worry-free use. Adjust mist output with the simple one-button control.</p>\n<p>Powered via USB through your car's charging port, this diffuser is compatible with all essential oil brands and types. The compact, non-slip base fits perfectly in standard cup holders, and the ambient LED night light adds a soft glow that complements the relaxing atmosphere. Breathe easier and drive happier.</p>\n<ul>\n<li>Technology: Ultrasonic cool mist atomization</li>\n<li>Capacity: 300ml water reservoir</li>\n<li>Run time: Up to 8 hours continuous</li>\n<li>Power: USB powered via car charger port</li>\n<li>Control: One-button mist adjustment</li>\n<li>Safety: Auto shut-off when water is low</li>\n<li>Ambient light: Built-in LED night light</li>\n<li>Compatible with all essential oil brands</li>\n</ul>",
+      "seo": {
+        "title": "Car Aromatherapy Diffuser - Humidifier, Essential Oil, Air Freshener",
+        "description": "DriveKit car aromatherapy diffuser with 300ml capacity, ultrasonic mist, USB power, and ambient LED for essential oil diffusion on the go."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 32,
+      "product_id": "gid://shopify/Product/15089797988718",
+      "variant_id": "gid://shopify/ProductVariant/53895100105070",
+      "title": "Soft Hair Car Wash Cleaning Glove",
+      "descriptionHtml": "<p>Wash your car the gentle way with the DriveKit Soft Hair Car Wash Cleaning Glove, a premium microfiber wash mitt that lifts dirt and grime without scratching your paint. The ultra-soft lambswool-style fibers trap debris deep within the pile, keeping it away from your vehicle's surface for a safe, swirl-free wash every time.</p>\n<p>Designed to fit comfortably on either hand, this glove gives you full control while washing, letting you reach into wheel wells, door jambs, and tight body contours with ease. The thick, absorbent microfiber holds plenty of soapy water, reducing the number of dips needed in your wash bucket and speeding up the entire cleaning process.</p>\n<p>After use, simply rinse clean and hang to dry \u2014 the fibers remain soft and effective through hundreds of washes. Whether you're doing a quick rinse or a full detail, this car wash glove is the essential tool that protects your finish while delivering a thorough clean.</p>\n<ul>\n<li>Material: Ultra-soft lambswool-style microfiber</li>\n<li>Design: Glove format for full hand control</li>\n<li>Scratch-free: Traps debris deep in fiber pile</li>\n<li>Absorbent: Holds ample soapy water per dip</li>\n<li>Durability: Machine washable, hundreds of uses</li>\n<li>Fits right or left hand</li>\n<li>Reaches tight spots: wheel wells, jambs, contours</li>\n</ul>",
+      "seo": {
+        "title": "Soft Hair Car Wash Glove - Microfiber, Scratch-Free, Auto Detailing",
+        "description": "DriveKit soft hair car wash cleaning glove with ultra-soft microfiber, scratch-free lambswool design for safe and thorough auto detailing."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 33,
+      "product_id": "gid://shopify/Product/15089798021486",
+      "variant_id": "gid://shopify/ProductVariant/53895100334446",
+      "title": "LED Turn Signal Strip Light",
+      "descriptionHtml": "<p>Upgrade your vehicle's visibility and style with the DriveKit LED Turn Signal Strip Light, a dynamic sequential indicator that replaces boring stock blinkers with eye-catching flowing light patterns. These flexible LED strips mount along your headlight or tail light edge for a modern, premium look that turns heads and improves safety.</p>\n<p>The sequential flow animation sweeps from inside to outside, creating a distinctive motion that's impossible for other drivers to miss. Built with high-brightness SMD LEDs housed in a flexible silicone tube, these strips are waterproof, dustproof, and rated for over 50,000 hours of use. The amber turn signal and white daytime running light modes give you dual-function versatility.</p>\n<p>Installation is straightforward with the included wiring connectors \u2014 simply splice into your existing turn signal wires and mount with the self-adhesive backing. The flexible construction allows custom shaping to fit any vehicle's headlight contour, from compact cars to full-size trucks.</p>\n<ul>\n<li>LED type: High-brightness SMD chips</li>\n<li>Animation: Sequential flowing turn signal</li>\n<li>Modes: Amber turn signal + white DRL</li>\n<li>Waterproof: Sealed silicone tube construction</li>\n<li>Lifespan: 50,000+ hours rated</li>\n<li>Install: Wire splice + self-adhesive mounting</li>\n<li>Flexible: Custom-shape to any headlight contour</li>\n</ul>",
+      "seo": {
+        "title": "LED Turn Signal Strip Light - Dynamic, Sequential, Car Indicator",
+        "description": "DriveKit LED turn signal strip light with sequential flow animation, dual-mode amber and white, waterproof design for universal car fit."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 34,
+      "product_id": "gid://shopify/Product/15089798054254",
+      "variant_id": "gid://shopify/ProductVariant/53895101546862",
+      "title": "Car Seat Storage Organizer Bag",
+      "descriptionHtml": "<p>Declutter your car's backseat with the DriveKit Car Seat Storage Organizer Bag, a multi-pocket hanging organizer that keeps essentials neat, accessible, and out of the way. This clever storage solution hooks over the front seat headrest and hangs against the back of the seat, transforming dead space into organized storage for the whole family.</p>\n<p>Featuring multiple pockets of varying sizes \u2014 including a large center compartment, side mesh pockets, and a dedicated tablet sleeve \u2014 this organizer accommodates everything from water bottles and snacks to tablets, books, and travel games. The heavy-duty oxford fabric resists tears and stains, while the reinforced stitching ensures it holds up under the weight of fully loaded pockets.</p>\n<p>Perfect for road trips, daily school runs, and family travel, this seat organizer keeps the backseat tidy and your passengers entertained. The universal headrest hook design fits virtually any vehicle, and the whole unit folds flat for easy storage when not in use.</p>\n<ul>\n<li>Material: Heavy-duty oxford fabric with reinforced stitching</li>\n<li>Pockets: Multiple sizes including tablet sleeve</li>\n<li>Mounting: Universal headrest hook design</li>\n<li>Capacity: Water bottles, snacks, electronics, books</li>\n<li>Storage: Folds flat when not in use</li>\n<li>Fits most front seat headrests</li>\n<li>Easy to clean: Wipe or machine wash</li>\n</ul>",
+      "seo": {
+        "title": "Car Seat Storage Organizer Bag - Backseat, Pocket, Travel, Car Acce...",
+        "description": "DriveKit car seat storage organizer bag with multi-pocket design, tablet sleeve, and headrest mount for backseat travel organization."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 35,
+      "product_id": "gid://shopify/Product/15089798087022",
+      "variant_id": "gid://shopify/ProductVariant/53895101710702",
+      "title": "Wet & Dry Car Vacuum Cleaner",
+      "descriptionHtml": "<p>Clean every corner of your vehicle with the DriveKit Wet & Dry Car Vacuum Cleaner, a powerful handheld vacuum that tackles both liquid spills and dry debris with equal ease. Whether it's spilled coffee, sandy footprints, pet hair, or cracker crumbs, this cordless vacuum makes quick work of car messes without dragging out your household unit.</p>\n<p>Equipped with a high-speed motor generating strong suction power, this vacuum picks up fine dust, larger particles, and even standing water from upholstery, carpets, and hard surfaces. The included crevice tool reaches deep between seats and into console gaps, while the brush attachment gently lifts pet hair from fabric seats without damaging the material.</p>\n<p>The rechargeable battery provides 20-30 minutes of continuous runtime \u2014 enough for a thorough cleaning of most vehicles. The washable HEPA filter captures 99.5% of fine particles, and the transparent dust cup lets you see exactly when it's time to empty. Compact enough to store in your trunk, this vacuum is always ready when messes happen.</p>\n<ul>\n<li>Suction: High-speed motor for wet and dry pickup</li>\n<li>Battery: Rechargeable, 20-30 minutes runtime</li>\n<li>Filter: Washable HEPA captures 99.5% of particles</li>\n<li>Attachments: Crevice tool + brush head included</li>\n<li>Capacity: Transparent easy-empty dust cup</li>\n<li>Storage: Compact trunk-friendly size</li>\n<li>Use: Upholstery, carpets, hard surfaces, trunk</li>\n</ul>",
+      "seo": {
+        "title": "Wet Dry Car Vacuum Cleaner - Cordless, Handheld, Powerful Suction, ...",
+        "description": "DriveKit wet and dry car vacuum cleaner with cordless design, HEPA filter, strong suction, and crevice tool for complete auto interior cleaning."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 36,
+      "product_id": "gid://shopify/Product/15089798119790",
+      "variant_id": "gid://shopify/ProductVariant/53895101841774",
+      "title": "Car Front Windshield Snow Cover",
+      "descriptionHtml": "<p>Wake up to a clear windshield every winter morning with the DriveKit Car Front Windshield Snow Cover, a heavy-duty protective shield that keeps snow, ice, frost, and freezing rain off your windshield overnight. Simply unfurl it over your windshield before bed and peel it off in the morning \u2014 no more scraping, no more waiting for defrosters.</p>\n<p>Made from multi-layer waterproof Oxford fabric with an aluminum film backing, this cover provides thermal insulation that prevents frost from forming on the glass surface. The magnetic edges and door-flap securing system hold it firmly in place even in windy conditions, while the elastic hem ensures a snug fit on sedans, SUVs, and trucks of all sizes.</p>\n<p>Beyond winter protection, this cover shields your windshield from sun damage, bird droppings, tree sap, and dust year-round. When not in use, it folds into the included storage bag that fits neatly in your trunk. Protect your time and your glass with this essential seasonal accessory.</p>\n<ul>\n<li>Material: Multi-layer Oxford fabric with aluminum backing</li>\n<li>Protection: Snow, ice, frost, sun, bird droppings</li>\n<li>Securing: Magnetic edges + door-flap system</li>\n<li>Fit: Universal elastic hem for sedans, SUVs, trucks</li>\n<li>Storage: Included compact carry bag</li>\n<li>Weatherproof: Fully waterproof construction</li>\n<li>Year-round use for sun and debris protection</li>\n</ul>",
+      "seo": {
+        "title": "Car Windshield Snow Cover - Winter, Frost, Ice, Waterproof, Univers...",
+        "description": "DriveKit car windshield snow cover with magnetic edges, waterproof Oxford fabric, and universal fit for winter frost and ice protection."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "winter",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 37,
+      "product_id": "gid://shopify/Product/15089798152558",
+      "variant_id": "gid://shopify/ProductVariant/53895102071150",
+      "title": "Women's Aromatherapy Car Interior Kit",
+      "descriptionHtml": "<p>Add a touch of elegance and fragrance to your daily drive with the DriveKit Women's Aromatherapy Car Interior Kit, a curated set of stylish car accessories designed to freshen your cabin while complementing your personal aesthetic. This all-in-one kit includes a hanging diffuser, vent clip air freshener, and essential oil blend \u2014 everything you need for a beautifully scented ride.</p>\n<p>The hanging diffuser features a chic geometric design in rose gold finish that doubles as a decorative accent while releasing subtle, long-lasting fragrance throughout your cabin. The vent clip freshener slots into your air vents for on-demand scent control, activated by your climate system's airflow. Both work with the included natural essential oil blend crafted for in-car use.</p>\n<p>Compact, elegant, and thoughtfully designed, this kit makes a perfect gift for anyone who wants their car to feel as put-together as their home. The natural essential oils are free from harsh chemicals and safe for use around children and pets, so you can breathe easy on every journey.</p>\n<ul>\n<li>Includes: Hanging diffuser, vent clip, essential oil blend</li>\n<li>Design: Rose gold geometric finish</li>\n<li>Fragrance: Natural essential oils, chemical-free</li>\n<li>Safety: Safe for use around children and pets</li>\n<li>Activation: Passive diffusion + airflow-activated vent clip</li>\n<li>Gift-ready packaging</li>\n<li>Fits all vehicle types</li>\n</ul>",
+      "seo": {
+        "title": "Aromatherapy Car Interior Kit - Women, Essential Oil, Air Freshener...",
+        "description": "DriveKit women's aromatherapy car interior kit with rose gold diffuser, vent clip freshener, and natural essential oil blend for a fragrant ride."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "2.70"
+    },
+    {
+      "num": 39,
+      "product_id": "gid://shopify/Product/15089798250862",
+      "variant_id": "gid://shopify/ProductVariant/53895102497134",
+      "title": "Adjustable Car Neck Pillow Headrest",
+      "descriptionHtml": "<p>Relieve neck and shoulder tension on long drives with the DriveKit Adjustable Car Neck Pillow Headrest, an ergonomic memory foam cushion that fills the gap between your headrest and neck for proper spinal alignment. This premium support pillow cradles your cervical spine, reducing fatigue and preventing the stiffness that comes from hours behind the wheel.</p>\n<p>Filled with high-density memory foam that contours to your unique neck shape, this pillow provides personalized support that traditional headrests simply cannot match. The adjustable elastic strap lets you position it at exactly the right height, while the breathable mesh cover keeps air circulating to prevent heat buildup during extended use.</p>\n<p>Whether you're commuting to work, embarking on a road trip, or spending long hours in traffic, this neck pillow transforms your car seat into an ergonomic throne. The removable, machine-washable cover stays fresh and clean, and the compact size makes it easy to carry between vehicles or take on flights.</p>\n<ul>\n<li>Fill: High-density contouring memory foam</li>\n<li>Adjustment: Elastic strap for height positioning</li>\n<li>Cover: Breathable mesh, removable and machine washable</li>\n<li>Support: Cervical spine alignment and neck cradle</li>\n<li>Portability: Compact for travel between vehicles</li>\n<li>Fits all standard car headrests</li>\n<li>Reduces driving fatigue and neck stiffness</li>\n</ul>",
+      "seo": {
+        "title": "Adjustable Car Neck Pillow - Headrest, Memory Foam, Lumbar, Comfort",
+        "description": "DriveKit adjustable car neck pillow with memory foam, breathable mesh cover, and elastic strap for ergonomic headrest support and driving comfort."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 40,
+      "product_id": "gid://shopify/Product/15089798283630",
+      "variant_id": "gid://shopify/ProductVariant/53895103316334",
+      "title": "Solar Rotating Car Air Freshener",
+      "descriptionHtml": "<p>Keep your car smelling fresh without batteries or plugs with the DriveKit Solar Rotating Car Air Freshener, a cleverly designed fragrance diffuser that uses natural sunlight to power its rotating mechanism. The spinning motion actively distributes scent throughout your cabin, providing far more effective fragrance coverage than static air fresheners that sit idle on your dashboard.</p>\n<p>Solar panels on the top surface capture sunlight and drive a whisper-quiet motor that keeps the unit rotating throughout the day. As it spins, it disperses the concentrated fragrance beads housed inside, releasing a consistent, long-lasting scent that neutralizes odors rather than just masking them. The built-in fragrance refill lasts up to 60 days of continuous use.</p>\n<p>Place it on your dashboard where it catches the most sunlight, and let nature do the work. The compact, modern design complements any interior style, and replacement fragrance pods are available in multiple scents so you can customize your cabin atmosphere to match your mood.</p>\n<ul>\n<li>Power: Solar panels, no batteries needed</li>\n<li>Mechanism: Whisper-quiet rotating fragrance dispersal</li>\n<li>Fragrance: Concentrated beads, up to 60 days per refill</li>\n<li>Placement: Dashboard mount with non-slip base</li>\n<li>Scents: Multiple fragrance options available</li>\n<li>Eco-friendly: Zero battery waste</li>\n<li>Odor neutralizing, not just masking</li>\n</ul>",
+      "seo": {
+        "title": "Solar Rotating Car Air Freshener - Automatic, Fragrance, Dashboard,...",
+        "description": "DriveKit solar rotating car air freshener with solar-powered spinning mechanism, long-lasting fragrance beads, and eco-friendly dashboard design."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 41,
+      "product_id": "gid://shopify/Product/15089798349166",
+      "variant_id": "gid://shopify/ProductVariant/53895103840622",
+      "title": "Anti-Lost GPS Tracking Alarm",
+      "descriptionHtml": "<p>Never lose track of your vehicle again with the DriveKit Anti-Lost GPS Tracking Alarm, a compact magnetic GPS tracker that provides real-time location data for your car, truck, or motorcycle. This palm-sized device attaches discreetly to any metal surface on your vehicle and connects to your smartphone for instant location updates whenever you need them.</p>\n<p>Equipped with dual GPS and LBS positioning, this tracker delivers location accuracy within 5 meters in open areas. Set up geofence alerts to receive instant notifications when your vehicle enters or leaves designated zones, and use the historical route playback feature to review where your vehicle has been. The motion-activated alarm triggers a loud alert if unauthorized movement is detected.</p>\n<p>The powerful built-in rechargeable battery lasts up to 7 days on standby, and the magnetic mounting system requires no tools, wiring, or installation \u2014 simply attach it to any hidden metal surface. Whether you're tracking a fleet vehicle, monitoring a teen driver, or adding a layer of anti-theft security, this GPS alarm delivers peace of mind.</p>\n<ul>\n<li>Positioning: Dual GPS + LBS, 5-meter accuracy</li>\n<li>Alerts: Geofence notifications + motion alarm</li>\n<li>Battery: Rechargeable, up to 7 days standby</li>\n<li>Mounting: Strong magnetic, no tools needed</li>\n<li>Features: Route playback, real-time tracking</li>\n<li>App: Smartphone companion app for iOS/Android</li>\n<li>Size: Palm-sized, discreet hidden installation</li>\n</ul>",
+      "seo": {
+        "title": "Anti-Lost GPS Tracking Alarm - Mini, Magnetic, Real-Time, Car Locator",
+        "description": "DriveKit anti-lost GPS tracking alarm with real-time location, geofence alerts, magnetic mount, and motion detection for car security."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "2.28"
+    },
+    {
+      "num": 42,
+      "product_id": "gid://shopify/Product/15089798480238",
+      "variant_id": "gid://shopify/ProductVariant/53895104463214",
+      "title": "Leather Car Seat Organizer",
+      "descriptionHtml": "<p>Declutter your car interior with this smart storage solution from DriveKit. Transform your vehicle cabin into a tidy, organized space with dedicated compartments for phones, wallets, documents, and everyday essentials. This organizer keeps everything within arm's reach while you drive, eliminating distracting searches for misplaced items during your commute or road trips.</p><p>Crafted from premium materials, this organizer features a sleek design that complements any car interior. The universal-fit construction ensures compatibility with virtually any vehicle, from compact sedans to full-size SUVs. Anti-slip backing and secure mounting straps keep the organizer firmly in place even during sharp turns and sudden stops on the road.</p><p>At DriveKit, we believe a well-organized car makes for a better driving experience. This organizer is easy to install in seconds with no tools required and can be removed just as quickly for cleaning. Its water-resistant exterior protects against spills and weather, making it perfect for families, commuters, and road trip enthusiasts who value order and convenience.</p><ul>\n<li>Material: Durable Oxford cloth or PU leather</li>\n<li>Mounting: Universal fit with anti-slip backing</li>\n<li>Compartments: Multiple pockets and dividers</li>\n<li>Compatibility: Fits all vehicle types</li>\n<li>Protection: Water-resistant exterior</li>\n<li>Installation: Tool-free instant setup</li>\n</ul>",
+      "seo": {
+        "title": "Car Seat Organizer - HQ Leather, Back Pocket, Storage, Universal Fit",
+        "description": "DriveKit HQ leather car seat organizer for back pocket storage with premium universal fit design."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 43,
+      "product_id": "gid://shopify/Product/15089798513006",
+      "variant_id": "gid://shopify/ProductVariant/53895104594286",
+      "title": "Car Armrest Box Cushion Pad",
+      "descriptionHtml": "<p>Comfort your driving arm with the DriveKit Car Armrest Box Cushion Pad, a plush memory foam pad that wraps your center console armrest in soft, supportive padding. This simple upgrade eliminates the hard, uncomfortable surface of stock armrests, giving your elbow a cushioned resting place during long commutes and road trips.</p>\n<p>Crafted from premium PU leather with a memory foam core, this cushion pad conforms to your arm's natural shape while providing firm support that doesn't bottom out. The elastic band installation wraps around your existing armrest in seconds, and the non-slip base keeps it firmly in place during driving. The universal design fits most center console armrests.</p>\n<p>Available in a range of colors to match your interior, this armrest pad also protects your original armrest from wear, cracking, and discoloration. It's the small, affordable upgrade that makes a noticeable difference in daily driving comfort.</p>\n<ul>\n<li>Material: Premium PU leather exterior</li>\n<li>Fill: High-density memory foam core</li>\n<li>Install: Elastic band wraps around armrest</li>\n<li>Base: Non-slip backing for secure fit</li>\n<li>Protection: Shields original armrest from wear</li>\n<li>Fit: Universal for most center consoles</li>\n<li>Cleaning: Wipe clean with damp cloth</li>\n</ul>",
+      "seo": {
+        "title": "Car Armrest Box Cushion Pad - Leather, Comfort, Elbow Rest, Universal",
+        "description": "DriveKit car armrest box cushion pad with PU leather, memory foam, and elastic mount for comfortable elbow support on any center console."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "3.44"
+    },
+    {
+      "num": 44,
+      "product_id": "gid://shopify/Product/15089798545774",
+      "variant_id": "gid://shopify/ProductVariant/53895104823662",
+      "title": "Non-Slip Car Phone Holder Pad",
+      "descriptionHtml": "<p>Keep your phone secure and accessible with the DriveKit Non-Slip Car Phone Holder Pad, a hands-free dashboard mount that uses advanced nano-gel technology to grip your phone without clips, magnets, or suction cups. Just place your phone on the pad and it stays put \u2014 even over speed bumps and sharp turns.</p>\n<p>The reusable nano-gel surface provides incredible holding power while remaining completely residue-free on your phone case and dashboard. It works with all smartphone sizes and cases, from compact models to large phablets, and the low-profile design blends seamlessly into your dashboard without blocking your view.</p>\n<p>Beyond phones, this versatile pad holds GPS devices, sunglasses, keys, and other small items you want within easy reach. When the surface gets dusty, simply rinse with water to restore its sticky grip \u2014 it's reusable indefinitely. This is the simplest, most elegant phone mounting solution for any vehicle.</p>\n<ul>\n<li>Grip technology: Advanced nano-gel surface</li>\n<li>Compatibility: All phone sizes and cases</li>\n<li>Residue-free: No marks on phone or dashboard</li>\n<li>Multi-use: Holds phones, GPS, sunglasses, keys</li>\n<li>Refreshable: Rinse with water to restore grip</li>\n<li>Profile: Low-profile, non-obstructive design</li>\n<li>Reusable: Indefinite lifespan</li>\n</ul>",
+      "seo": {
+        "title": "Non-Slip Car Phone Holder Pad - Dashboard, Anti-Skid, Universal, St...",
+        "description": "DriveKit non-slip car phone holder pad with nano-gel grip, universal fit, residue-free dashboard mount for phones and small items."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 45,
+      "product_id": "gid://shopify/Product/15089798611310",
+      "variant_id": "gid://shopify/ProductVariant/53895105380718",
+      "title": "Mini WiFi Dash Cam Full HD",
+      "descriptionHtml": "<p>Capture every moment on the road with the DriveKit Mini WiFi Dash Cam Full HD, a compact powerhouse that records stunning 1080P video while connecting to your smartphone via WiFi for instant footage access. This tiny dash cam measures just over 2 inches, making it virtually invisible on your windshield while delivering professional-grade recording quality.</p>\n<p>The advanced Sony CMOS sensor captures clear, detailed footage in all lighting conditions, from bright sunshine to pitch-dark nighttime driving. Built-in WiFi lets you view, download, and share recordings directly through the companion app on your phone \u2014 no need to remove the SD card. The 140\u00b0 wide-angle lens covers multiple lanes of traffic for comprehensive road documentation.</p>\n<p>With loop recording, G-sensor impact detection, and 24-hour parking surveillance, this dash cam works around the clock to protect you. The compact design mounts behind your rearview mirror where it stays completely out of sight, maintaining a clean windshield while keeping a vigilant digital eye on the road.</p>\n<ul>\n<li>Resolution: 1080P Full HD at 30fps</li>\n<li>Sensor: Sony CMOS for all-light recording</li>\n<li>WiFi: Smartphone app for live view and file transfer</li>\n<li>Lens: 140\u00b0 wide-angle coverage</li>\n<li>Size: Ultra-compact, under 2 inches</li>\n<li>Parking: 24-hour surveillance mode</li>\n<li>Safety: G-sensor auto-save on impact</li>\n</ul>",
+      "seo": {
+        "title": "Mini WiFi Dash Cam Full HD - 1080P, Night Vision, App Control, Comp...",
+        "description": "DriveKit mini WiFi dash cam with 1080P Full HD, Sony CMOS sensor, 140\u00b0 wide angle, night vision, and smartphone app for easy footage access."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "119.99",
+      "old_price": "59.99"
+    },
+    {
+      "num": 46,
+      "product_id": "gid://shopify/Product/15089798644078",
+      "variant_id": "gid://shopify/ProductVariant/53895105446254",
+      "title": "Car Electric Polishing Machine",
+      "descriptionHtml": "<p>Achieve professional-quality paint correction at home with the DriveKit Car Electric Polishing Machine, a variable-speed orbital buffer that removes swirl marks, oxidation, and light scratches to restore your vehicle's deep, glossy finish. This dual-action polisher is engineered for both beginners and experienced detailers who demand showroom results.</p>\n<p>The variable speed dial lets you control the orbital speed from 1,000 to 3,800 RPM, giving you precise control for different correction stages \u2014 slow for wax application, medium for polishing, and fast for cutting through defects. The ergonomic D-handle and lightweight design reduce fatigue during extended polishing sessions, while the random orbital action prevents holograms and buffer marks.</p>\n<p>Compatible with 5-inch and 6-inch pads, this polisher works with cutting compounds, polishing agents, and wax sealants from any brand. The long power cord reaches around your entire vehicle without extension cables, and the included foam pads let you start polishing right out of the box.</p>\n<ul>\n<li>Speed: Variable 1,000-3,800 RPM</li>\n<li>Action: Dual-action random orbital</li>\n<li>Pad size: Compatible with 5-inch and 6-inch pads</li>\n<li>Ergonomic: D-handle grip, lightweight body</li>\n<li>Cord: Long reach for full vehicle coverage</li>\n<li>Includes: Foam polishing and waxing pads</li>\n<li>Use: Cutting, polishing, waxing, paint correction</li>\n</ul>",
+      "seo": {
+        "title": "Car Electric Polishing Machine - Buffer, Waxer, Paint Correction, A...",
+        "description": "DriveKit car electric polishing machine with variable speed 1000-3800 RPM, dual-action orbital, and included pads for professional paint correction."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "119.99",
+      "old_price": "59.99"
+    },
+    {
+      "num": 47,
+      "product_id": "gid://shopify/Product/15089798676846",
+      "variant_id": "gid://shopify/ProductVariant/53895105511790",
+      "title": "Magnetic Car Windshield Cover",
+      "descriptionHtml": "<p>Shield your windshield from the elements with the DriveKit Magnetic Car Windshield Cover, a premium protective shield that uses powerful integrated magnets for instant, tool-free installation. Unlike elastic or strap-based covers, this magnetic design adheres to your windshield frame in seconds and stays put even in strong winds.</p>\n<p>The multi-layer construction features a reflective outer surface that blocks UV rays and heat, a waterproof middle layer that keeps rain and snow at bay, and a soft inner lining that protects your glass from scratches. This triple-layer defense keeps your windshield clean and frost-free while reducing interior temperature on hot days.</p>\n<p>Perfect for all seasons, this cover prevents frost buildup in winter, blocks scorching sun in summer, and keeps pollen and bird droppings off your glass year-round. The integrated magnets are positioned to avoid contact with paintwork, and the whole cover folds flat into your trunk in seconds when you're ready to drive.</p>\n<ul>\n<li>Magnetic mounting: Powerful integrated magnets</li>\n<li>Layers: Reflective outer, waterproof middle, soft inner</li>\n<li>UV protection: Blocks solar heat and harmful rays</li>\n<li>Seasonal: Frost prevention, sun shade, debris cover</li>\n<li>Paint-safe: Magnets positioned away from paintwork</li>\n<li>Storage: Folds flat for trunk storage</li>\n<li>Wind-resistant: Holds firm in windy conditions</li>\n</ul>",
+      "seo": {
+        "title": "Magnetic Car Windshield Cover - Sun Shade, UV Block, Dust Proof, Ma...",
+        "description": "DriveKit magnetic car windshield cover with triple-layer UV protection, waterproof design, and integrated magnets for all-season glass defense."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 48,
+      "product_id": "gid://shopify/Product/15089798709614",
+      "variant_id": "gid://shopify/ProductVariant/53895105610094",
+      "title": "Foldable Car Cup Holder Stand",
+      "descriptionHtml": "<p>Never struggle to find a spot for your drink again with the DriveKit Foldable Car Cup Holder Stand, a versatile, adjustable holder that accommodates cups, bottles, and cans of virtually any size. The clever foldable design expands to hold large bottles and collapses to fit standard cups, making it the most adaptable cup holder you'll ever own.</p>\n<p>The adjustable clamp mechanism stretches from 2.5 inches to 4 inches in diameter, securely holding everything from slim energy drink cans to oversized water bottles. The reinforced base provides stable support on any flat surface \u2014 dashboard, center console, or even the ground at a tailgate party. Anti-slip rubber pads keep your drinks upright and vibration-free.</p>\n<p>When you're not using it, the entire holder folds down to under an inch thick, slipping easily into your glove box, door pocket, or backpack. Built from durable engineering plastic with a premium matte finish, this cup holder looks as good as it works \u2014 a small upgrade that makes a big difference in daily convenience.</p>\n<ul>\n<li>Capacity: Adjustable 2.5 to 4-inch diameter</li>\n<li>Design: Collapsible fold-flat construction</li>\n<li>Material: Engineering plastic, matte finish</li>\n<li>Stability: Reinforced base with anti-slip pads</li>\n<li>Storage: Folds to under 1 inch thick</li>\n<li>Versatile: Dashboard, console, or flat surfaces</li>\n<li>Fits slim cans to oversized bottles</li>\n</ul>",
+      "seo": {
+        "title": "Foldable Car Cup Holder - Bottle Stand, Adjustable, Universal, Port...",
+        "description": "DriveKit foldable car cup holder with adjustable 2.5-4 inch capacity, anti-slip base, and collapsible design for universal bottle and cup storage."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "59.99",
+      "old_price": "29.99"
+    },
+    {
+      "num": 49,
+      "product_id": "gid://shopify/Product/15089798742382",
+      "variant_id": "gid://shopify/ProductVariant/53895105675630",
+      "title": "Car Seat Back Storage Organizer",
+      "descriptionHtml": "<p>Keep your car's backseat organized and clutter-free with the DriveKit Car Seat Back Storage Organizer, a multi-pocket hanging organizer that turns wasted seat-back space into practical storage. Designed for families, road trippers, and anyone who hates a messy car, this organizer keeps essentials within arm's reach for rear-seat passengers.</p>\n<p>Featuring a large main compartment, tablet pocket, mesh side pockets, and dedicated slots for cups and bottles, this organizer handles everything from road trip snacks and kids' entertainment to work documents and travel essentials. The durable canvas-style fabric resists spills and stains, and the reinforced headrest hooks support the weight of a fully loaded organizer without sagging.</p>\n<p>The universal mounting system hooks over any front seat headrest in seconds \u2014 no tools, no adhesives, no damage to your interior. When passengers need extra legroom, simply unhook it and fold it flat for storage. It's the organizational upgrade that makes family drives more peaceful and commutes more productive.</p>\n<ul>\n<li>Pockets: Main compartment, tablet sleeve, mesh sides, cup slots</li>\n<li>Material: Durable canvas-style stain-resistant fabric</li>\n<li>Mounting: Universal headrest hooks, tool-free install</li>\n<li>Capacity: Supports fully loaded weight without sagging</li>\n<li>Storage: Folds flat when not in use</li>\n<li>Passenger-friendly: Easy access from back seat</li>\n<li>Cleaning: Wipe clean with damp cloth</li>\n</ul>",
+      "seo": {
+        "title": "Car Seat Back Storage Organizer - Multi-Pocket, Travel, Kids, Car O...",
+        "description": "DriveKit car seat back storage organizer with multi-pocket design, tablet sleeve, and universal headrest mount for family travel and daily commutes."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 50,
+      "product_id": "gid://shopify/Product/15089798807918",
+      "variant_id": "gid://shopify/ProductVariant/53895105839470",
+      "title": "3 In 1 Car Heater Defogger Plug In Cigarette Lighter Mini...",
+      "descriptionHtml": "<p><b>Overview:</b></p><p>\u30103 major functions\u3011 Defrosting/heating/cooling: Defrost and defog: Fast defrost and defog, providing a clearer driving view.<br>\u3010360 \u00b0 adjustment\u3011 The rotation angle can allow passengers and drivers to blow out necessary cold or hot air.<br>\u3010Easy to use\u3011 Simply plug it into the vehicle's cigarette lighter socket and open it.</p><p><b><br></b></p><p><b>Product Information:</b><br></p><p>Material: ABS<br>Purpose: Defrost and remove fog<br>Power: 150 (W)<br>Color: 12v black 8893A, 12v white 8893B, 24v black 8893D, 24v white 8893E<br>Performance: Integrated heating and cooling<br>Size: about 14*12*8cm</p><p><br><b>Packing List:</b></p><p>Heater*1Power cord*1</p><p><img src=\"https://cf.cjdropshipping.com/17013024/1730096748745068544.jpg\" style=\"max-width:100%;\"><img src=\"https://cf.cjdropshipping.com/17013024/1730096749139333120.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/17013024/1730096749411962880.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/17013024/1730096749571346432.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/17013024/1730096749982388224.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/17013024/1730096750171131904.jpg\" style=\"max-width: 100%;\"><br></p>",
+      "seo": {
+        "title": "3 In 1 Car Heater Defogger Plug In Cigarette Lighter Mini Car Heate...",
+        "description": ""
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "4.31"
+    },
+    {
+      "num": 51,
+      "product_id": "gid://shopify/Product/15089798840686",
+      "variant_id": "gid://shopify/ProductVariant/53895106003310",
+      "title": "Car Mirror Swivel Navigation Bracket",
+      "descriptionHtml": "<p>Position your phone at the perfect viewing angle with the DriveKit Car Mirror Swivel Navigation Bracket, a versatile mount that attaches to your rearview mirror stem for an elevated, eye-level phone placement. This clever bracket keeps your phone in your natural line of sight, reducing the time your eyes are off the road during navigation.</p>\n<p>The 360-degree swivel ball joint allows complete angle adjustment \u2014 portrait or landscape, tilted up or down, angled toward driver or passenger. The spring-loaded clamp grips phones from 4.7 to 6.7 inches securely, while the soft silicone padding protects your device from scratches. Installation takes seconds: just clip the bracket around your mirror stem and tighten the thumb screw.</p>\n<p>By mounting your phone at mirror level rather than low on the dash or console, this bracket keeps navigation directions, incoming calls, and music controls in your peripheral vision. It's a safety-first design that also frees up your dashboard and air vent space for other accessories.</p>\n<ul>\n<li>Adjustment: 360-degree swivel ball joint</li>\n<li>Phone fit: 4.7 to 6.7 inches, portrait or landscape</li>\n<li>Mount: Clips to rearview mirror stem</li>\n<li>Protection: Soft silicone phone padding</li>\n<li>Safety: Eye-level placement for minimal distraction</li>\n<li>Install: Thumb screw, no tools needed</li>\n<li>Space-saving: Frees dash and vent space</li>\n</ul>",
+      "seo": {
+        "title": "Car Mirror Swivel Mount Bracket - Phone Holder, Navigation, Dashboa...",
+        "description": "DriveKit car mirror swivel mount bracket with 360-degree adjustment, universal phone clamp, and mirror-stem mount for safe eye-level navigation."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 52,
+      "product_id": "gid://shopify/Product/15089798873454",
+      "variant_id": "gid://shopify/ProductVariant/53895106068846",
+      "title": "Car Snow Brush & Ice Scraper",
+      "descriptionHtml": "<p>Conquer winter mornings with the DriveKit Car Snow Brush & Ice Scraper, a heavy-duty telescoping tool that clears snow, ice, and frost from your entire vehicle in minutes. The extendable aluminum handle reaches from 36 to 52 inches, giving you the leverage to clear your windshield, roof, hood, and trunk without straining or climbing.</p>\n<p>The 180-degree rotating brush head features dense, soft bristles that sweep heavy snow without scratching your paint or damaging antenna and wiper blades. On the opposite end, the reinforced ice scraper blade cuts through stubborn frost and ice buildup on your windshield. The ergonomic T-handle provides a secure, comfortable grip even when wearing thick winter gloves.</p>\n<p>Built from aircraft-grade aluminum with ABS plastic components, this snow brush is lightweight enough for one-handed use yet strong enough to handle heavy, wet snow. The quick-release mechanism lets you detach the brush head for compact storage in your trunk. It's the winter essential every driver needs before the first freeze hits.</p>\n<ul>\n<li>Extension: Telescoping 36 to 52 inches</li>\n<li>Brush: 180-degree rotating head, soft bristles</li>\n<li>Scraper: Reinforced ABS ice scraper blade</li>\n<li>Handle: Ergonomic T-grip, glove-friendly</li>\n<li>Material: Aircraft-grade aluminum + ABS plastic</li>\n<li>Storage: Detachable head for compact trunk storage</li>\n<li>Paint-safe: Soft bristles won't scratch finish</li>\n</ul>",
+      "seo": {
+        "title": "Car Snow Brush Ice Scraper - Winter, Extendable, Heavy Duty, Telesc...",
+        "description": "DriveKit car snow brush and ice scraper with telescoping 36-52 inch handle, rotating brush head, and reinforced scraper for heavy-duty winter clearing."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "winter",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 53,
+      "product_id": "gid://shopify/Product/15089798906222",
+      "variant_id": "gid://shopify/ProductVariant/53895106199918",
+      "title": "ECO OBD2 Fuel Economy Device",
+      "descriptionHtml": "<p>Optimize your fuel consumption with the DriveKit ECO OBD2 Fuel Economy Device, a plug-and-play OBD-II module that recalibrates your engine's electronic control unit for more efficient fuel delivery. This compact device reads your driving patterns and adjusts throttle response, fuel injection timing, and air-fuel ratios to maximize every drop of gasoline.</p>\n<p>Installation couldn't be simpler \u2014 just plug the device into your vehicle's OBD-II port (usually located under the dashboard) and it begins working immediately. No tools, no wiring, no programming required. The LED indicator confirms proper connection and shows the current operating mode. Compatible with all gasoline vehicles manufactured after 2008 with standard OBD-II ports.</p>\n<p>By optimizing engine parameters based on real-time driving data, this device can help reduce fuel consumption by improving combustion efficiency. It also helps reduce harmful emissions, making your vehicle more environmentally friendly. The non-invasive design means it can be removed at any time without affecting your vehicle's original settings.</p>\n<ul>\n<li>Connection: Standard OBD-II port plug-in</li>\n<li>Install: No tools, no wiring, plug and play</li>\n<li>Compatibility: Gasoline vehicles post-2008</li>\n<li>Function: Optimizes fuel injection and throttle response</li>\n<li>Emissions: Helps reduce harmful exhaust output</li>\n<li>Removable: No permanent vehicle modifications</li>\n<li>Indicator: LED status display</li>\n</ul>",
+      "seo": {
+        "title": "ECO OBD2 Fuel Economy Device - Save Gas, Plug-In, ECO Mode, Fuel Sa...",
+        "description": "DriveKit ECO OBD2 fuel economy device with plug-and-play installation for gasoline vehicles post-2008, optimizing fuel consumption and reducing emissions."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 54,
+      "product_id": "gid://shopify/Product/15089798938990",
+      "variant_id": "gid://shopify/ProductVariant/53895106789742",
+      "title": "AutoClean Wireless Portable Car Vacuum",
+      "descriptionHtml": "<p>Keep your ride spotless with the DriveKit AutoClean Wireless Portable Car Vacuum Cleaner, a high-suction cordless handheld vacuum designed specifically for automotive cleaning. This compact powerhouse tackles crumbs, dirt, pet hair, sand, and debris from every surface in your vehicle \u2014 from tight console gaps to spacious trunk areas.</p>\n<p>The high-efficiency motor delivers impressive suction power for a cordless unit, while the rechargeable lithium-ion battery provides up to 30 minutes of runtime on a single charge. The translucent dust cup shows fill level at a glance, and the one-touch empty button makes disposal clean and easy. Multiple attachment heads tackle different cleaning scenarios with precision.</p>\n<p>The crevice tool reaches deep between seats and into door pockets, the brush attachment gently lifts pet hair from upholstery, and the wide nozzle covers large carpet areas efficiently. A washable HEPA filter captures microscopic particles for cleaner cabin air, and the whole unit charges via USB for convenient recharging at home or in the car.</p>\n<ul>\n<li>Suction: High-efficiency motor, strong cordless power</li>\n<li>Battery: Rechargeable lithium-ion, up to 30 minutes</li>\n<li>Filter: Washable HEPA for microscopic particle capture</li>\n<li>Attachments: Crevice tool, brush head, wide nozzle</li>\n<li>Dust cup: Translucent with one-touch empty</li>\n<li>Charging: USB rechargeable</li>\n<li>Design: Compact, car-specific cleaning ergonomics</li>\n</ul>",
+      "seo": {
+        "title": "AutoClean Wireless Car Vacuum Cleaner - Portable, Cordless, Powerfu...",
+        "description": "DriveKit AutoClean wireless portable car vacuum cleaner with strong suction, HEPA filter, multiple attachments, and 30-minute cordless runtime."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "3.29"
+    },
+    {
+      "num": 55,
+      "product_id": "gid://shopify/Product/15089798971758",
+      "variant_id": "gid://shopify/ProductVariant/53895106920814",
+      "title": "Solar Car Air Freshener Diffuser",
+      "descriptionHtml": "<p>Refresh your cabin naturally with the DriveKit Solar Car Air Freshener Diffuser, a solar-powered fragrance system that uses sunlight to activate and distribute essential oil aromas throughout your vehicle. Unlike passive cardboard fresheners, this active diffuser uses solar energy to circulate scent, providing consistent, full-cabin fragrance coverage.</p>\n<p>The built-in solar cell powers a silent micro-fan that draws air through the infused fragrance pad, releasing a steady stream of natural aroma. The adjustable vent ring lets you control scent intensity from subtle to strong, and the replaceable fragrance pads come in multiple natural scents including lavender, ocean breeze, and fresh leather.</p>\n<p>Place it on your dashboard where sunlight hits, and the diffuser works automatically whenever your car is parked or driving during daylight hours. The elegant wood-grain finish complements any interior, and the compact size takes up minimal dashboard real estate. Replacement pads are affordable and available in multi-packs for year-round freshness.</p>\n<ul>\n<li>Power: Solar cell, no batteries or plugs needed</li>\n<li>Circulation: Micro-fan for active scent distribution</li>\n<li>Control: Adjustable intensity vent ring</li>\n<li>Fragrance: Natural essential oil infused pads</li>\n<li>Scents: Multiple options including lavender, ocean</li>\n<li>Design: Wood-grain finish, compact dashboard size</li>\n<li>Replacement pads available in multi-packs</li>\n</ul>",
+      "seo": {
+        "title": "Solar Car Air Freshener Diffuser - Natural, Aroma, Dashboard, Eco-F...",
+        "description": "DriveKit solar car air freshener diffuser with solar-powered micro-fan, adjustable intensity, and natural essential oil pads for full-cabin fragrance."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "39.99",
+      "old_price": "19.99"
+    },
+    {
+      "num": 56,
+      "product_id": "gid://shopify/Product/15089799004526",
+      "variant_id": "gid://shopify/ProductVariant/53895107084654",
+      "title": "1080P Three-Record Driving Recorder",
+      "descriptionHtml": "<p>Capture comprehensive footage of every drive with the DriveKit 1080P Three-Record Driving Recorder, a triple-camera DVR system that simultaneously records front, rear, and cabin views for complete road documentation. This advanced dash cam setup ensures you have video evidence from every angle, whether you need to prove right-of-way or document an incident.</p>\n<p>The front camera records in crisp 1080P with a 170\u00b0 wide-angle lens, while the rear camera covers your back window in 1080P for reverse and rear-impact recording. The interior cabin camera captures the driver and passenger area, making this setup ideal for rideshare drivers, fleet vehicles, and anyone who wants comprehensive coverage. All three streams record simultaneously to a microSD card.</p>\n<p>Night vision technology ensures clear footage in low-light conditions, and the G-sensor automatically locks and protects impact footage from being overwritten. The large touchscreen display provides easy access to all camera views, recording settings, and playback. With parking surveillance mode, your vehicle stays protected around the clock.</p>\n<ul>\n<li>Cameras: 3-channel recording (front, rear, cabin)</li>\n<li>Resolution: 1080P Full HD on all channels</li>\n<li>Front lens: 170\u00b0 wide-angle</li>\n<li>Night vision: Advanced low-light recording technology</li>\n<li>Display: Large touchscreen with multi-view</li>\n<li>Safety: G-sensor impact detection and file lock</li>\n<li>Parking: 24-hour surveillance mode</li>\n<li>Storage: MicroSD card support (not included)</li>\n</ul>",
+      "seo": {
+        "title": "1080P Driving Recorder - Triple Camera, Front Rear, Night Vision, DVR",
+        "description": "DriveKit 1080P three-record driving recorder with front, rear, and cabin cameras, night vision, G-sensor, and touchscreen for complete road coverage."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "29.99",
+      "old_price": "13.97"
+    },
+    {
+      "num": 57,
+      "product_id": "gid://shopify/Product/15089799037294",
+      "variant_id": "gid://shopify/ProductVariant/53895108591982",
+      "title": "Motorcycle Helmet LED Light Strip",
+      "descriptionHtml": "<p>Stay visible and ride in style with the DriveKit Motorcycle Helmet LED Light Strip, a flexible, rechargeable LED strip that wraps around your helmet for 360-degree visibility. Whether you're riding at dawn, dusk, or in full darkness, these bright LED strips make you impossible to miss for other drivers and riders.</p>\n<p>The RGB LED strip features multiple lighting modes including steady glow, flash, strobe, and color-cycling patterns \u2014 all controlled via a simple remote or the inline button. The flexible silicone construction wraps around any helmet shape, and the strong 3M adhesive backing bonds securely to helmets, jackets, or bike frames without leaving residue when removed.</p>\n<p>USB rechargeable with up to 8 hours of battery life on a single charge, this LED strip is ready for extended rides without worrying about battery swaps. The IP65 waterproof rating handles rain and road spray, and the slim profile doesn't add drag or interfere with your riding. Light up the road and ride safer.</p>\n<ul>\n<li>LED type: RGB full-color strip</li>\n<li>Modes: Steady, flash, strobe, color-cycle</li>\n<li>Control: Inline button + wireless remote</li>\n<li>Battery: USB rechargeable, up to 8 hours</li>\n<li>Waterproof: IP65 rated for rain and spray</li>\n<li>Mounting: 3M adhesive, residue-free removal</li>\n<li>Fits all helmet shapes and sizes</li>\n</ul>",
+      "seo": {
+        "title": "Motorcycle Helmet LED Light Strip - RGB, Rechargeable, Safety, Visi...",
+        "description": "DriveKit motorcycle helmet LED light strip with RGB colors, multiple modes, USB rechargeable, and waterproof design for enhanced riding visibility."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 58,
+      "product_id": "gid://shopify/Product/15089799102830",
+      "variant_id": "gid://shopify/ProductVariant/53895109116270",
+      "title": "Multifunctional Car Laptop Desk",
+      "descriptionHtml": "<p>Turn your car into a mobile office with the DriveKit Multifunctional Car Laptop Desk, a sturdy, adjustable work surface that mounts to your steering wheel for a convenient desk right inside your vehicle. Perfect for professionals who work on the go, this desk provides a stable platform for laptops, tablets, paperwork, and meals.</p>\n<p>The wide, flat surface accommodates laptops up to 15.6 inches and includes a built-in mouse pad area with a non-slip surface. Integrated cable management channels keep charging cords organized, while the raised edge lip prevents your devices from sliding during use. The lightweight yet rigid construction supports up to 15 pounds without flexing.</p>\n<p>Mounting to your steering wheel with the universal bracket system takes just seconds, and the adjustable height and angle let you find the most comfortable working position. When you're done, the desk folds in half for compact storage in your trunk or backseat. It's the productivity upgrade every mobile professional needs.</p>\n<ul>\n<li>Surface: Wide platform fits laptops up to 15.6 inches</li>\n<li>Capacity: Supports up to 15 pounds</li>\n<li>Features: Built-in mouse pad, cable management, edge lip</li>\n<li>Mounting: Universal steering wheel bracket</li>\n<li>Adjustable: Height and angle customization</li>\n<li>Storage: Folds in half for compact carrying</li>\n<li>Use: Laptop work, tablet, meals, paperwork</li>\n</ul>",
+      "seo": {
+        "title": "Multifunctional Car Laptop Desk - Work, Tablet, Steering Wheel, Por...",
+        "description": "DriveKit multifunctional car laptop desk with steering wheel mount, mouse pad, cable management, and foldable design for mobile office productivity."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 59,
+      "product_id": "gid://shopify/Product/15089799135598",
+      "variant_id": "gid://shopify/ProductVariant/53895109214574",
+      "title": "Portable Car Windshield Defroster",
+      "descriptionHtml": "<p>Clear your windshield in record time with the DriveKit Portable Car Windshield Defroster, a compact 12V heating device that blasts warm air directly at fogged or frosted glass. This plug-in defroster eliminates the wait time of your car's built-in heater, delivering immediate results on cold mornings when every second counts.</p>\n<p>The ceramic PTC heating element produces instant warmth without the warm-up delay of traditional resistive heaters. Aim the adjustable nozzle at your windshield, plug it into your cigarette lighter, and watch fog and frost disappear in seconds. The dual-speed fan lets you choose between gentle defogging and rapid defrosting depending on conditions.</p>\n<p>Beyond windshield clearing, this versatile defroster works as a personal space heater for cold-weather comfort. The compact, weighted base sits securely on your dashboard without sliding, and the 360-degree swivel nozzle directs airflow wherever you need it. Lightweight and portable, it's an essential winter tool that pays for itself the first time you avoid a late start.</p>\n<ul>\n<li>Heating: Ceramic PTC instant warm-up</li>\n<li>Power: 12V cigarette lighter plug-in</li>\n<li>Fan: Dual-speed defog and defrost modes</li>\n<li>Nozzle: 360-degree swivel directional airflow</li>\n<li>Base: Weighted, non-slip dashboard placement</li>\n<li>Secondary use: Personal space heater</li>\n<li>Compact and portable design</li>\n</ul>",
+      "seo": {
+        "title": "Portable Car Windshield Defroster - Heater, Defogger, Quick Heat, 12V",
+        "description": "DriveKit portable car windshield defroster with ceramic PTC heating, dual-speed fan, and 360-degree nozzle for instant fog and frost removal."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "winter",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 60,
+      "product_id": "gid://shopify/Product/15089799168366",
+      "variant_id": "gid://shopify/ProductVariant/53895109312878",
+      "title": "Car Bluetooth MP3 FM Transmitter",
+      "descriptionHtml": "<p>Upgrade your car's audio system with the DriveKit Car Bluetooth MP3 FM Transmitter, a wireless adapter that streams music from your phone through your car's existing stereo speakers. Just plug it into your cigarette lighter, pair via Bluetooth, and tune your FM radio to the matching frequency \u2014 crystal-clear wireless audio in seconds.</p>\n<p>Beyond music streaming, this transmitter features a hands-free calling system with a built-in microphone and noise cancellation technology. Incoming calls are announced through your speakers, and the large LED display shows caller ID, song titles, and FM frequency. Dual USB ports provide fast charging for your phone and a passenger's device simultaneously.</p>\n<p>Supporting USB drives, TF cards, and Bluetooth streaming, this FM transmitter gives you multiple ways to play your favorite tracks. The bass boost mode adds depth and punch to your music, while the EQ settings let you fine-tune the sound to your preference. It's the most affordable way to add wireless audio to any vehicle.</p>\n<ul>\n<li>Connectivity: Bluetooth 5.0 + USB + TF card</li>\n<li>Audio: FM transmission to car stereo</li>\n<li>Calls: Hands-free with built-in microphone</li>\n<li>Display: LED screen for caller ID and track info</li>\n<li>Charging: Dual USB ports for simultaneous charging</li>\n<li>Sound: Bass boost and EQ adjustment modes</li>\n<li>Compatibility: Any vehicle with FM radio</li>\n</ul>",
+      "seo": {
+        "title": "Car Bluetooth FM Transmitter - MP3, USB Charger, Hands-Free, Wireless",
+        "description": "DriveKit car Bluetooth FM transmitter with MP3 player, dual USB charger, hands-free calling, and bass boost for wireless audio in any vehicle."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "4.78"
+    },
+    {
+      "num": 61,
+      "product_id": "gid://shopify/Product/15089799233902",
+      "variant_id": "gid://shopify/ProductVariant/53895109411182",
+      "title": "Car Bumper Protector Strip Guard Corner Protection Strips...",
+      "descriptionHtml": "<p><b>Overview:</b></p><p>1. The Car crash bar will \u00a0be affixed to the front of the car and after, can effectively prevent an accident caused due to car injury<br>2. With double-sided adhesive tape, Paste on Car Body more stable<br>3. Easy install, Material of High quality, Durable, Waterproof, Doesn't fade<br>4. suit for all kinds of car<b><br></b></p><p><b><br></b></p><p><b>Product information:<br></b></p><p>Product name: car bumper<br>Material: PVC carbon fiber gel<br>Type: Anti-collision strip<br>Size: Length 40.5CM width 5.2CM (mm)<br>Applicable models: all cars<br>Color classification: carbon fiber pattern black, carbon fiber pattern white, carbon fiber pattern gray, carbon fiber pattern red<br>Product function: anti-collision, protection, anti-wiping, decoration<br>Installation location: front and rear bumpers, doors and other vulnerable parts<br>Product packaging: 2 packs<br>Installation method: paste installation</p><p><b><br>Size information:<br><br></b><img src=\"https://cf.cjdropshipping.com/8697ed0b-d244-4b29-bcdc-5ec3f9d1b64d.jpg\" style=\"max-width:100%;\"><b><br><br>Packing\u00a0list :<br></b></p><p>Car collision avoidance strip one pair</p><p><br></p><p><b>Product picture:</b><br></p><p><img src=\"https://cf.cjdropshipping.com/296fce34-1807-4676-a285-d2929e3f39ef.jpg\" style=\"font-size: 1em; max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/7d6058a5-37ca-4878-94de-fe8c09023ce3.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/c7e19024-05ec-4e80-9d3b-88d1f8ffcb55.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/41a135d5-436f-4299-8b40-d3b5f89a85a1.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/0430414c-366b-4800-b53b-e86c0ec3eab6.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/c3f18bcc-25f2-42fc-af2f-189e117a4991.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/50dc9c3d-746b-45f5-81a2-c057da412918.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/3fd4745a-2651-4dfa-9935-b299ba4031b5.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/128d85ee-52ee-4018-9df0-f222597d5c3f.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/902d5749-eb70-4c02-9255-ee0bed491e92.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/6fc6e912-ab0d-4e65-938a-cc399320b60f.jpg\" style=\"max-width: 100%;\"><img src=\"https://cf.cjdropshipping.com/05e775c1-2ce8-478c-a5dc-6d893e6b831f.jpg\" style=\"max-width: 100%;\"><br></p>",
+      "seo": {
+        "title": "Car Bumper Protector Strip Guard Corner Protection Strips Scratch P...",
+        "description": ""
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "0.61"
+    },
+    {
+      "num": 62,
+      "product_id": "gid://shopify/Product/15089799266670",
+      "variant_id": "gid://shopify/ProductVariant/53895109869934",
+      "title": "Automobile Headlight Restoration Liquid",
+      "descriptionHtml": "<p>Restore cloudy, yellowed headlights to crystal-clear clarity with the DriveKit Automobile Headlight Restoration Liquid, a professional-grade chemical formula that dissolves oxidation and restores\u900f\u660e\u5ea6 to aged polycarbonate headlight lenses. This affordable fix saves hundreds compared to headlight replacement while dramatically improving nighttime visibility and safety.</p>\n<p>The two-step process is simple: apply the restoration compound to polish away years of UV damage and oxidation, then seal with the included UV-protective clear coat to prevent future yellowing. Within 30 minutes per headlight, you'll see a dramatic transformation from hazy and dim to bright and clear \u2014 like brand-new headlights at a fraction of the cost.</p>\n<p>Beyond headlights, this restoration liquid works on tail lights, fog lights, turn signals, and any clear polycarbonate surface that has become cloudy or discolored. The results are long-lasting thanks to the UV sealant layer that protects against sun damage for up to 12 months. Revive your vehicle's face and improve your night driving safety.</p>\n<ul>\n<li>Formula: Professional oxidation-dissolving compound</li>\n<li>Process: Two-step polish and UV seal coat</li>\n<li>Time: 30 minutes per headlight</li>\n<li>Applications: Headlights, tail lights, fog lights, signals</li>\n<li>UV protection: Clear coat prevents future yellowing</li>\n<li>Duration: Results last up to 12 months</li>\n<li>Savings: Fraction of headlight replacement cost</li>\n</ul>",
+      "seo": {
+        "title": "Headlight Restoration Liquid - Repair, Restore, Clear, Polish, UV C...",
+        "description": "DriveKit automobile headlight restoration liquid with two-step polish and UV coat for clearing yellowed, cloudy headlights and improving night visibility."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "0.69"
+    },
+    {
+      "num": 63,
+      "product_id": "gid://shopify/Product/15089799332206",
+      "variant_id": "gid://shopify/ProductVariant/53895110361454",
+      "title": "Emergency Car Snow Tire Chains",
+      "descriptionHtml": "<p>Drive with confidence through winter's worst with the DriveKit Emergency Car Snow Tire Chains, heavy-duty anti-skid chains that provide maximum traction on snow, ice, and muddy roads. These emergency chains mount quickly without jacking up your vehicle, giving you the grip you need when all-season tires aren't enough.</p>\n<p>The thick manganese steel link construction bites into ice and packed snow for superior traction during acceleration, braking, and cornering. The tool-free installation system uses a ratchet tensioner to secure the chains around your tires in minutes \u2014 no experience needed. The included installation guide walks you through the process step by step.</p>\n<p>Keep these chains in your trunk as an emergency winter essential. They're compact enough to store in the included carry bag and deploy in under 5 minutes when conditions deteriorate. Compatible with most sedan and SUV tire sizes, these chains are your insurance policy against getting stuck in winter weather.</p>\n<ul>\n<li>Material: Manganese steel for maximum durability</li>\n<li>Traction: Anti-skid links for ice and packed snow</li>\n<li>Install: Tool-free ratchet tensioner system</li>\n<li>Time: Under 5 minutes to mount per tire</li>\n<li>Storage: Compact carry bag included</li>\n<li>Fit: Most sedan and SUV tire sizes</li>\n<li>Safety: Enhances braking and cornering grip</li>\n</ul>",
+      "seo": {
+        "title": "Emergency Car Snow Tire Chains - Winter, Anti-Skid, Quick Install, ...",
+        "description": "DriveKit emergency car snow tire chains with manganese steel links, tool-free ratchet install, and carry bag for winter anti-skid traction safety."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "winter",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    },
+    {
+      "num": 64,
+      "product_id": "gid://shopify/Product/15089799364974",
+      "variant_id": "gid://shopify/ProductVariant/53895110525294",
+      "title": "Car Aromatherapy Diffuser Cloud Mist Air Freshener Auto D...",
+      "descriptionHtml": "<p><b>Overview:</b></p><p>Experience fresh and pleasant scents while on-the-go with our Car Diffuser Air Freshener. Its unique and fashionable design with a stylish appearance will perfectly complement your RVs. Powered by long-lasting battery, it also features intelligent mode for your convenience.<b><br></b></p><p><b><br></b></p><p><b>Product information:</b><br>Color: [P1 osmanthus orchid], [P1 clear Cherry], [P1 Mountain and Sea secret], [P1 snow top], [P1 cloud top fragrance]]<br> Function: decoration, refreshing, aromatic, deodorant<br> Net content: 5 ml (inclusive)-10 ml (inclusive)</p>\n \n <b>Packing list: </b>\n <br>Car Aromatherapy*1 Essential oil storage*1 instruction manual *1 charging cable*1\u00a0\n \n <b>Product Image:</b>\u00a0\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/d1c32814-42ed-4a3d-8f8a-006f0ac191ee_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/ecf43e7b-c145-4c2d-8ead-c44b0b890aa2_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/9c48b1fb-cbe2-42fe-8570-bb5b9bf90e78_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/5d4ecaff-4d4f-4bb0-a442-52eb051a43ea_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/5bb90c5a-f7c5-4ad1-8f11-bc9f50238c99_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/7315073e-3534-4be6-ba20-2208b95f9d73_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/c4613052-c25d-46c1-94a5-750ec95e796b_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/04b89625-a356-4bef-85d7-60b771f19940_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/a19a061b-8b12-4d99-988b-ef4281f7cba4_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/97c487fc-0ba3-415c-be27-66f1bddf176f_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/aceb44c0-a844-4edc-9d39-3a62a8a25c30_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/19cb1066-1cf5-4552-84b1-5182c2250a6e_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/2c29f0b9-dc73-4934-bb3b-2ea3d269edb0_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/a9150d30-4e6f-4a32-97ea-3ca7cdac5c3c_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/bf76168a-da9a-45a9-8d60-3ea16f73cc1e_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/3500530a-95bb-4904-9ec6-e028561690cc_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/a25f1dec-9aa1-4bff-b55b-dc010796daf2_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/bfdb27c6-60fd-4bb8-a01a-69f0519014dc_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/b3a271fa-fd76-44af-bb40-77524636078e_trans.jpeg\">\n <img src=\"https://oss-cf.cjdropshipping.com/product/2024/11/11/06/085527d7-65e2-4584-87a4-3ac0e18949f6_trans.jpeg\">",
+      "seo": {
+        "title": "Car Aromatherapy Diffuser Cloud Mist Air Freshener Auto Decoration ...",
+        "description": ""
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "19.99",
+      "old_price": "3.35"
+    },
+    {
+      "num": 65,
+      "product_id": "gid://shopify/Product/15089799430510",
+      "variant_id": "gid://shopify/ProductVariant/53895111934318",
+      "title": "Smartphone HUD Head-Up Display",
+      "descriptionHtml": "<p>Keep your eyes on the road with the DriveKit Smartphone HUD Head-Up Display, a windshield projector that mirrors your phone's navigation and speed data directly onto your line of sight. This clever device reflects your phone screen onto a transparent display panel, giving you turn-by-turn directions and speed information without ever looking down at your dashboard or phone mount.</p>\n<p>Simply place your phone on the HUD base, launch your favorite navigation app, and the projector creates a clear, floating display that appears to hover above your hood. The adjustable brightness and angle ensure perfect visibility in any lighting condition \u2014 from bright daylight to dark nighttime driving. Anti-glare coating on the reflector eliminates distracting reflections.</p>\n<p>Compatible with all navigation apps that support HUD mode, including Google Maps, Waze, and Apple Maps, this head-up display reduces distraction and improves driving safety. The non-slip base keeps your phone secure during acceleration and braking, while the compact design doesn't obstruct your view of the road ahead.</p>\n<ul>\n<li>Display: Projects phone screen onto transparent reflector</li>\n<li>Compatibility: All HUD-capable navigation apps</li>\n<li>Brightness: Adjustable for day and night driving</li>\n<li>Anti-glare: Coated reflector eliminates reflections</li>\n<li>Mounting: Non-slip base, secure phone hold</li>\n<li>Angle: Adjustable projector angle for perfect view</li>\n<li>Safety: Eyes-up driving for reduced distraction</li>\n</ul>",
+      "seo": {
+        "title": "Smartphone HUD Head-Up Display - Speed, Navigation, Projector, Driv...",
+        "description": "DriveKit smartphone HUD head-up display with windshield projector for speed, navigation, adjustable brightness, and anti-glare for safer driving."
+      },
+      "status": "DRAFT",
+      "tags": [
+        "evergreen",
+        "Batch1",
+        "Batch2"
+      ],
+      "new_price": "49.99",
+      "old_price": "24.99"
+    }
+  ],
+  "removed": [
+    {
+      "num": 38,
+      "title": "Bicycle Repair Combination Tool",
+      "id": "gid://shopify/Product/15089798218094"
+    }
+  ]
+}

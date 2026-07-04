@@ -1,0 +1,157 @@
+// SHOGO:CUSTOM-START prisma-header
+// Managed by Shogo. Do not add a datasource `url` or change the generator `provider` — the database URL is configured in prisma.config.ts (Prisma 7+).
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+// SHOGO:CUSTOM-END
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  passwordHash   String   @map("password_hash")
+  role           String   @default("CUSTOMER")
+  emailOptIn        Boolean  @default(true) @map("email_opt_in")
+  emailVerified     Boolean  @default(false) @map("email_verified")
+  verificationToken String?  @map("verification_token")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  orders         Order[]
+  reviews        Review[]
+  newsletter     NewsletterSubscriber[]
+
+  @@map("users")
+}
+
+model Order {
+  id               String   @id @default(cuid())
+  orderNumber      String   @unique @map("order_number")
+  userId           String?  @map("user_id")
+  email            String
+  status           String   @default("pending")
+  total            Float
+  currency         String   @default("USD")
+  shippingName     String?  @map("shipping_name")
+  shippingAddress1 String?  @map("shipping_address1")
+  shippingAddress2 String?  @map("shipping_address2")
+  shippingCity     String?  @map("shipping_city")
+  shippingState    String?  @map("shipping_state")
+  shippingZip      String?  @map("shipping_zip")
+  shippingCountry  String?  @map("shipping_country")
+  shopifyOrderId   String?  @unique @map("shopify_order_id")
+  shopifyOrderNum  String?  @map("shopify_order_number")
+  promoCode        String?  @map("promo_code")
+  discount         Float    @default(0)
+  items            OrderItem[]
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String  @map("order_id")
+  productId   String  @map("product_id")
+  variantId   String? @map("variant_id")
+  title       String
+  variantTitle String? @map("variant_title")
+  quantity    Int
+  price       Float
+  total       Float
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String
+  productId String   @map("product_id")
+  productTitle String @map("product_title")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([email, productId])
+  @@map("waitlist_entries")
+}
+
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_content")
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  productId   String   @map("product_id")
+  userId      String?  @map("user_id")
+  displayName String   @map("display_name")
+  email       String?
+  rating      Int
+  title       String?
+  body        String   @default("")
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@map("reviews")
+}
+
+model ProductOverride {
+  id              String   @id @default(cuid())
+  shopifyId       String   @unique @map("shopify_id")
+  title           String?
+  description     String?
+  vendor          String?
+  productType     String?  @map("product_type")
+  tags            String?
+  hidden          Boolean  @default(false)
+  customPrice     Float?   @map("custom_price")
+  customCompareAt Float?   @map("custom_compare_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("product_overrides")
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  userId       String?  @map("user_id")
+  name         String?
+  source       String   @default("website")
+  subscribedAt DateTime @default(now()) @map("subscribed_at")
+  unsubscribed Boolean  @default(false)
+  unsubscribedAt DateTime? @map("unsubscribed_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("newsletter_subscribers")
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  to         String
+  subject    String
+  type       String
+  status     String   @default("sent")
+  sentAt     DateTime @default(now()) @map("sent_at")
+  campaignId String?  @map("campaign_id")
+
+  @@map("email_logs")
+}
