@@ -8,7 +8,7 @@ COPY . .
 
 RUN bunx prisma generate
 RUN bunx prisma db push --skip-generate
-RUN bun run build || true
+RUN bun run build
 
 EXPOSE 3001
 CMD ["bun", "run", "server.tsx"]
