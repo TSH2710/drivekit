@@ -6,3 +6,4 @@ startCommand = "bun run server.tsx"
 healthcheckPath = "/health"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+preDeployCommand = "bunx prisma db push"
