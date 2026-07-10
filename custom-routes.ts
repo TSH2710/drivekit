@@ -134,17 +134,22 @@ app.get('/shopify/sync-tags', async (c) => {
       // Build new tags: remove All-Season/Batch1/Batch2/Batch3, add correct batch
       const cleaned = oldTags.filter((t: string) => !/all[- ]?season/i.test(t) && !/^batch[- ]?[123]$/i.test(t))
       cleaned.push(batchTag)
-      const newTagStr = [...new Set(cleaned)].join(', ')
+      const uniqueTags = [...new Set(cleaned)]
+      const newTagStr = uniqueTags.join(', ')
+
+      // Compare as sorted sets to avoid false positives from ordering
+      const sortedOld = [...oldTags].sort().join(', ').toLowerCase()
+      const sortedNew = [...uniqueTags].sort().join(', ').toLowerCase()
 
       // Only keep compareAtPrice on Summer products
       const variants = (p.variants ?? []).map((v: any) => {
         if (!hasSummer && v.compare_at_price) {
-          return { id: v.id, compare_at_price: null }
+          return { id: v.id, price: v.price, compare_at_price: null }
         }
         return null
       }).filter(Boolean)
 
-      const tagsChanged = newTagStr.toLowerCase() !== oldTags.join(', ').toLowerCase()
+      const tagsChanged = sortedOld !== sortedNew
       const priceChanged = variants.length > 0
 
       if (!tagsChanged && !priceChanged) {
