@@ -18,7 +18,7 @@ import { join } from 'path'
 import {
   SHOPIFY_STORE, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET, SHOPIFY_API, SHOPIFY_SCOPES,
   ensureValidToken, shopifyFetch, shopifyApiPut, fetchAllShopifyProducts,
-  readTokenCache, writeTokenCache, refreshAccessToken,
+  readTokenCache, writeTokenCache, refreshAccessToken, validateCurrentToken,
 } from './src/lib/shopify-helpers'
 
 import {
@@ -251,8 +251,12 @@ app.get('/shopify/oauth/callback', async (c) => {
     if (!data.access_token) return c.json({ error: data.error ?? 'Token exchange failed', details: data }, 400)
 
     writeTokenCache({ accessToken: data.access_token, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, scope: data.scope ?? '' })
-    console.log('[shopify-oauth] Token received! Scopes:', data.scope)
-    return c.json({ ok: true, message: 'Shopify connected! Token saved.', scope: data.scope })
+
+    lastHealthResult = { ok: true, checkedAt: new Date().toISOString(), source: 'oauth-callback', message: 'Shopify token refreshed successfully' }
+    lastHealthCheck = Date.now()
+
+    console.log('[shopify-oauth] Token received and cached! Scopes:', data.scope)
+    return c.json({ ok: true, message: 'Shopify connected! Token saved and validated.', scope: data.scope })
   } catch (err: any) {
     console.error('[shopify-oauth] Callback error:', err.message)
     return c.json({ error: err.message ?? 'OAuth callback failed' }, 500)
@@ -297,6 +301,108 @@ app.get('/shopify/oauth/setup', async (c) => {
     authUrl, redirectUri,
   })
 })
+
+// ── Token Health Check ────────────────────────────────────────
+
+let lastHealthCheck = 0
+let lastHealthResult: { ok: boolean; checkedAt: string; source: string; message: string } | null = null
+const HEALTH_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000 // 6 hours
+
+app.get('/shopify/token-status', async (c) => {
+  const now = Date.now()
+  if (lastHealthResult && now - lastHealthCheck < HEALTH_CHECK_INTERVAL_MS) {
+    return c.json(lastHealthResult)
+  }
+
+  const envToken = process.env.SHOPIFY_ACCESS_TOKEN || ''
+  const cached = readTokenCache()
+
+  let tokenToCheck = envToken
+  let source = 'env'
+
+  if (cached && cached.accessToken !== envToken) {
+    const cachedValid = await validateCurrentToken(cached.accessToken)
+    if (cachedValid) {
+      tokenToCheck = cached.accessToken
+      source = 'cache'
+    }
+  }
+
+  if (!tokenToCheck) {
+    lastHealthResult = { ok: false, checkedAt: new Date().toISOString(), source: 'none', message: 'No Shopify token configured. Re-authorize at /api/shopify/oauth/authorize' }
+    lastHealthCheck = now
+    return c.json(lastHealthResult)
+  }
+
+  const valid = await validateCurrentToken(tokenToCheck)
+  lastHealthCheck = now
+
+  if (valid) {
+    lastHealthResult = { ok: true, checkedAt: new Date().toISOString(), source, message: 'Shopify token is valid' }
+  } else {
+    lastHealthResult = { ok: false, checkedAt: new Date().toISOString(), source, message: 'Shopify token is invalid. Re-authorize at /api/shopify/oauth/authorize' }
+  }
+
+  return c.json(lastHealthResult)
+})
+
+// ── Auto-Reauth ───────────────────────────────────────────────
+// Checks token health, returns re-auth URL if invalid
+
+app.get('/shopify/reauthorize', async (c) => {
+  const envToken = process.env.SHOPIFY_ACCESS_TOKEN || ''
+  const cached = readTokenCache()
+  const tokenToCheck = envToken || cached?.accessToken || ''
+
+  if (tokenToCheck && await validateCurrentToken(tokenToCheck)) {
+    return c.json({ ok: true, message: 'Token is still valid — no re-authorization needed' })
+  }
+
+  if (!SHOPIFY_CLIENT_ID) return c.json({ error: 'SHOPIFY_CLIENT_ID not set — cannot re-authorize' }, 400)
+  const redirectUri = process.env.SHOPIFY_REDIRECT_URI || `${c.req.header('x-forwarded-proto') || 'https'}://${c.req.header('host')}/api/shopify/oauth/callback`
+  const authUrl = `https://${SHOPIFY_STORE}/admin/oauth/authorize?client_id=${SHOPIFY_CLIENT_ID}&scope=${encodeURIComponent(SHOPIFY_SCOPES)}&redirect_uri=${encodeURIComponent(redirectUri)}`
+
+  return c.json({
+    ok: false,
+    message: 'Token is invalid or expired. Redirecting to Shopify for re-authorization.',
+    authUrl,
+    redirectUri,
+  })
+})
+
+// ── Background Health Check (runs on server start) ────────────
+;(async () => {
+  const envToken = process.env.SHOPIFY_ACCESS_TOKEN || ''
+  if (!envToken) {
+    console.log('[shopify-health] No token configured — skipping initial check')
+    return
+  }
+
+  const valid = await validateCurrentToken(envToken)
+  if (valid) {
+    const cache = { accessToken: envToken, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, scope: 'validated' }
+    writeTokenCache(cache)
+    lastHealthResult = { ok: true, checkedAt: new Date().toISOString(), source: 'startup', message: 'Shopify token validated on startup' }
+    console.log('[shopify-health] ✅ Token validated on startup')
+  } else {
+    lastHealthResult = { ok: false, checkedAt: new Date().toISOString(), source: 'startup', message: 'Token invalid — re-authorize at /api/shopify/oauth/authorize' }
+    console.log('[shopify-health] ❌ Token invalid on startup — re-authorization required')
+  }
+  lastHealthCheck = Date.now()
+
+  setInterval(async () => {
+    const token = process.env.SHOPIFY_ACCESS_TOKEN || readTokenCache()?.accessToken || ''
+    if (!token) return
+    const ok = await validateCurrentToken(token)
+    lastHealthCheck = Date.now()
+    if (ok) {
+      lastHealthResult = { ok: true, checkedAt: new Date().toISOString(), source: 'periodic', message: 'Shopify token is valid' }
+    } else {
+      lastHealthResult = { ok: false, checkedAt: new Date().toISOString(), source: 'periodic', message: 'Token expired — re-authorize at /api/shopify/oauth/authorize' }
+      console.log('[shopify-health] ⚠️ Token expired during periodic check — re-authorization needed')
+    }
+  }, HEALTH_CHECK_INTERVAL_MS)
+})()
 
 // ── Waitlist ──────────────────────────────────────────────────
 

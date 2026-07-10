@@ -81,28 +81,32 @@ export function getActiveToken(): string {
   return ''
 }
 
-export async function refreshAccessToken(): Promise<string> {
-  if (!SHOPIFY_CLIENT_ID || !SHOPIFY_CLIENT_SECRET) throw new Error('Shopify OAuth credentials not configured')
-  const res = await fetch(`https://${SHOPIFY_STORE}/admin/oauth/access_token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'client_credentials',
-      client_id: SHOPIFY_CLIENT_ID,
-      client_secret: SHOPIFY_CLIENT_SECRET,
-    }),
-  })
-  const data = await res.json() as { access_token?: string; expires_in?: number; scope?: string; error?: string }
-  if (!data.access_token) throw new Error(data.error ?? 'Token refresh failed')
-  const cache: TokenCache = {
-    accessToken: data.access_token,
-    expiresAt: Date.now() + ((data.expires_in ?? 86399) - 300) * 1000,
-    scope: data.scope ?? '',
+export async function validateCurrentToken(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`https://${SHOPIFY_STORE}/admin/api/2024-10/shop.json`, {
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    return res.ok
+  } catch {
+    return false
   }
-  writeTokenCache(cache)
-  SHOPIFY_TOKEN = cache.accessToken
-  console.log('[shopify] Token refreshed, expires in', data.expires_in, 'seconds')
-  return cache.accessToken
+}
+
+export async function refreshAccessToken(): Promise<string> {
+  const envToken = process.env.SHOPIFY_ACCESS_TOKEN || ''
+  if (envToken && await validateCurrentToken(envToken)) {
+    const cache: TokenCache = { accessToken: envToken, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, scope: 'validated' }
+    writeTokenCache(cache)
+    SHOPIFY_TOKEN = envToken
+    console.log('[shopify] Env token validated and cached')
+    return envToken
+  }
+  const cached = readTokenCache()
+  if (cached && await validateCurrentToken(cached.accessToken)) {
+    SHOPIFY_TOKEN = cached.accessToken
+    return cached.accessToken
+  }
+  throw new Error('Shopify token is invalid. Re-authorize at /api/shopify/oauth/authorize')
 }
 
 export async function ensureValidToken(): Promise<string> {
