@@ -249,6 +249,92 @@ app.get('/shopify/summer-tag', async (c) => {
   }
 })
 
+// ── Seasonal Sale (Start / End) ───────────────────────────────
+
+app.get('/shopify/sale', requireAdminMiddleware, async (c) => {
+  const action = c.req.query('action') ?? 'start'   // start | end
+  const tag = c.req.query('tag') ?? 'summer'
+  const discountPct = parseInt(c.req.query('discount') ?? '20')
+
+  if (!['start', 'end'].includes(action)) return c.json({ error: 'action must be "start" or "end"' }, 400)
+  if (action === 'start' && (discountPct < 1 || discountPct > 90)) return c.json({ error: 'discount must be 1-90' }, 400)
+
+  try {
+    const rawProducts = await fetchAllShopifyProducts()
+    const active = rawProducts.filter((p: any) => p.status === 'active')
+    const tagged = active.filter((p: any) => {
+      const tags: string[] = (p.tags ?? '').split(',').map((t: string) => t.trim().toLowerCase())
+      return tags.includes(tag.toLowerCase())
+    })
+
+    if (tagged.length === 0) return c.json({ ok: true, message: `No products tagged "${tag}"`, products: 0 })
+
+    const multiplier = action === 'start' ? 1 / (1 - discountPct / 100) : null
+    let totalVariants = 0
+    let updated = 0
+    let errors: string[] = []
+
+    for (const p of tagged) {
+      const pp = p as any
+      const variants = pp.variants ?? []
+      const updates = variants.map((v: any) => {
+        const price = parseFloat(v.price)
+        if (action === 'start') {
+          const compareAt = Math.ceil(price * multiplier! * 100) / 100
+          return { id: v.id, compare_at_price: String(compareAt) }
+        }
+        return { id: v.id, compare_at_price: null }
+      })
+
+      // Batch in groups of 10
+      for (let i = 0; i < updates.length; i += 10) {
+        const batch = updates.slice(i, i + 10)
+        try {
+          await shopifyApiPut(`/products/${pp.id}.json`, {
+            product: { id: pp.id, variants: batch },
+          })
+          totalVariants += batch.length
+          await new Promise(r => setTimeout(r, 500))
+        } catch (err: any) {
+          errors.push(`${pp.title}: ${err.message}`)
+        }
+      }
+      updated++
+    }
+
+    // Verification — spot-check first 3 products
+    let verified = 0
+    const sample = tagged.slice(0, 3)
+    for (const p of sample) {
+      const pp = p as any
+      for (const v of (pp.variants ?? []).slice(0, 5)) {
+        const price = parseFloat(v.price)
+        if (action === 'start') {
+          const expected = Math.ceil(price * multiplier! * 100) / 100
+          if (v.compare_at_price && parseFloat(v.compare_at_price) === expected) verified++
+        } else {
+          if (!v.compare_at_price) verified++
+        }
+      }
+    }
+
+    return c.json({
+      ok: true,
+      action,
+      tag,
+      discountPct: action === 'start' ? discountPct : 0,
+      products: updated,
+      totalVariants,
+      errors: errors.length,
+      errorDetails: errors,
+      verified,
+      sampleSize: sample.length * 5,
+    })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Sale operation failed' }, 500)
+  }
+})
+
 // ── Cache Refresh (after tag sync) ────────────────────────────
 
 app.get('/shopify/cache/refresh', async (c) => {
