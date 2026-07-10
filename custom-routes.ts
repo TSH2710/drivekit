@@ -153,25 +153,15 @@ app.get('/shopify/sync-tags', async (c) => {
         const updateData: any = { product: { id: p.id, tags: newTagStr } }
         await shopifyApiPut(`/products/${p.id}.json`, updateData)
 
-        // Use GraphQL to clear compare_at_price (REST API doesn't handle null well)
+        // Clear compareAtPrice for non-summer products (set equal to price)
         if (priceChanged) {
-          const token = await ensureValidToken()
-          for (const v of (p.variants ?? [])) {
-            if (!hasSummer && v.compare_at_price) {
-              await fetch(`${SHOPIFY_API.replace('/2024-10', '')}/graphql.json`, {
-                method: 'POST',
-                headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  query: `mutation productVariantUpdate(\$input: ProductVariantInput!) { productVariantUpdate(input: \$input) { productVariant { id compareAtPrice } userErrors { field message } } }`,
-                  variables: { input: { id: `gid://shopify/ProductVariant/${v.id}`, compareAtPrice: null } },
-                }),
-              }).then(r => r.json()).then((d: any) => {
-                if (d?.data?.productVariantUpdate?.userErrors?.length) {
-                  console.log(`[sync-tags] GraphQL variant update error for ${p.title}:`, d.data.productVariantUpdate.userErrors)
-                }
-              }).catch(e => console.log(`[sync-tags] GraphQL variant update failed for ${p.title}: ${e.message}`))
-              await new Promise(r => setTimeout(r, 300))
-            }
+          const variants = (p.variants ?? [])
+            .filter((v: any) => !hasSummer && v.compare_at_price)
+            .map((v: any) => ({ id: v.id, price: v.price, compare_at_price: v.price }))
+          if (variants.length > 0) {
+            await shopifyApiPut(`/products/${p.id}.json`, {
+              product: { id: p.id, variants },
+            })
           }
         }
         updated++
