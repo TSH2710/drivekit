@@ -80,8 +80,111 @@
  */
 
 import { Hono } from 'hono'
+import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { resolve } from 'path'
 
 const app = new Hono()
+
+const SHOPIFY_SCOPES = [
+  'read_products',
+  'write_products',
+  'read_orders',
+  'write_orders',
+  'read_inventory',
+  'write_inventory',
+  'read_script_tags',
+  'write_script_tags',
+].join(',')
+
+// ── Shopify OAuth: initiate ──────────────────────────────────────────
+app.get('/shopify/auth', (c) => {
+  const shop = process.env.SHOPIFY_STORE_DOMAIN
+  const clientId = process.env.SHOPIFY_CLIENT_ID
+  const redirectUri = process.env.SHOPIFY_REDIRECT_URI
+
+  if (!shop || !clientId || !redirectUri) {
+    return c.json({ error: 'Missing SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID, or SHOPIFY_REDIRECT_URI' }, 500)
+  }
+
+  const authUrl = new URL(`https://${shop}/admin/oauth/authorize`)
+  authUrl.searchParams.set('client_id', clientId)
+  authUrl.searchParams.set('scope', SHOPIFY_SCOPES)
+  authUrl.searchParams.set('redirect_uri', redirectUri)
+
+  return c.redirect(authUrl.toString())
+})
+
+// ── Shopify OAuth: callback ──────────────────────────────────────────
+app.get('/shopify/oauth/callback', async (c) => {
+  const { shop, code, hmac, state } = c.req.query()
+
+  if (!shop || !code) {
+    return c.json({ error: 'Missing shop or code parameter' }, 400)
+  }
+
+  const clientId = process.env.SHOPIFY_CLIENT_ID
+  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    return c.json({ error: 'Missing SHOPIFY_CLIENT_ID or SHOPIFY_CLIENT_SECRET' }, 500)
+  }
+
+  // Exchange the authorization code for an access token
+  const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+    }),
+  })
+
+  if (!tokenRes.ok) {
+    const err = await tokenRes.text()
+    return c.json({ error: `Token exchange failed: ${err}` }, 502)
+  }
+
+  const tokenData = (await tokenRes.json()) as {
+    access_token: string
+    refresh_token?: string
+    scope: string
+  }
+
+  const scopes = tokenData.scope?.split(',').map((s) => s.trim()) ?? []
+
+  // Save tokens to .env
+  const envPath = resolve(import.meta.dir, '..', '.env')
+  let envContent = existsSync(envPath) ? readFileSync(envPath, 'utf-8') : ''
+
+  const vars: Record<string, string> = {
+    SHOPIFY_ACCESS_TOKEN: tokenData.access_token,
+    SHOPIFY_REFRESH_TOKEN: tokenData.refresh_token ?? '',
+  }
+
+  for (const [key, value] of Object.entries(vars)) {
+    if (!value) continue
+    const regex = new RegExp(`^${key}=.*$`, 'm')
+    const line = `${key}=${value}`
+    if (regex.test(envContent)) {
+      envContent = envContent.replace(regex, line)
+    } else {
+      envContent = envContent.trim() + `\n${line}\n`
+    }
+  }
+
+  writeFileSync(envPath, envContent, 'utf-8')
+
+  return c.json({
+    success: true,
+    shop,
+    scopes,
+    has_refresh_token: !!tokenData.refresh_token,
+    access_token: tokenData.access_token,
+    refresh_token: tokenData.refresh_token ?? null,
+    message: 'Tokens saved to .env. Rotate with: bun run scripts/shopify-token-rotate.ts',
+  })
+})
 
 // Add your custom routes here. They mount under `/api/`.
 // Example:

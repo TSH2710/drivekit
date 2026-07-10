@@ -6,11 +6,11 @@
  * Works with Shopify's OAuth token refresh flow.
  *
  * Environment variables (set in .env or Railway):
- *   SHOPIFY_SHOP_DOMAIN   — e.g. "your-store" (not the full URL)
- *   SHOPIFY_ACCESS_TOKEN  — current access token
- *   SHOPIFY_REFRESH_TOKEN — refresh token from the OAuth flow
- *   SHOPIFY_CLIENT_ID     — your app's API key
- *   SHOPIFY_CLIENT_SECRET — your app's API secret
+ *   SHOPIFY_STORE_DOMAIN   — e.g. "dc5byu-fy.myshopify.com" or just "dc5byu-fy"
+ *   SHOPIFY_ACCESS_TOKEN   — current access token
+ *   SHOPIFY_REFRESH_TOKEN  — refresh token from the OAuth flow
+ *   SHOPIFY_CLIENT_ID      — your app's API key
+ *   SHOPIFY_CLIENT_SECRET  — your app's API secret
  *
  * Usage:
  *   bun run scripts/shopify-token-rotate.ts           — single rotation check
@@ -129,24 +129,32 @@ async function refreshToken(
   }
 }
 
+// ── Extract shop subdomain from full URL ─────────────────────────────
+function extractShopDomain(storeDomain: string): string {
+  // "dc5byu-fy.myshopify.com" → "dc5byu-fy"
+  // "dc5byu-fy" → "dc5byu-fy"
+  return storeDomain.replace(/\.myshopify\.com$/, '')
+}
+
 // ── Main ─────────────────────────────────────────────────────────────
 async function rotateToken() {
   loadEnv()
 
-  const shopDomain = process.env.SHOPIFY_SHOP_DOMAIN
+  const rawDomain = process.env.SHOPIFY_STORE_DOMAIN
   const accessToken = process.env.SHOPIFY_ACCESS_TOKEN
   const refreshToken = process.env.SHOPIFY_REFRESH_TOKEN
   const clientId = process.env.SHOPIFY_CLIENT_ID
   const clientSecret = process.env.SHOPIFY_CLIENT_SECRET
 
-  if (!shopDomain || !accessToken || !refreshToken || !clientId || !clientSecret) {
+  if (!rawDomain || !accessToken || !refreshToken || !clientId || !clientSecret) {
     console.error('❌ Missing required environment variables:')
-    console.error('   SHOPIFY_SHOP_DOMAIN, SHOPIFY_ACCESS_TOKEN, SHOPIFY_REFRESH_TOKEN,')
+    console.error('   SHOPIFY_STORE_DOMAIN, SHOPIFY_ACCESS_TOKEN, SHOPIFY_REFRESH_TOKEN,')
     console.error('   SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET')
     console.error('\n   Set these in .env or as Railway environment variables.')
     process.exit(1)
   }
 
+  const shopDomain = extractShopDomain(rawDomain)
   console.log(`\n🔑 Checking Shopify token for ${shopDomain}.myshopify.com...`)
 
   const isValid = await validateToken(shopDomain, accessToken)
