@@ -193,6 +193,19 @@ app.get('/shopify/sync-tags', async (c) => {
   }
 })
 
+// ── Cache Refresh (after tag sync) ────────────────────────────
+
+app.get('/shopify/cache/refresh', async (c) => {
+  try {
+    const rawProducts = await fetchAllShopifyProducts()
+    const products = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+    writeCache(products)
+    return c.json({ ok: true, count: products.length, syncedAt: new Date().toISOString() })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Cache refresh failed' }, 500)
+  }
+})
+
 app.get('/shopify/products', async (c) => {
   try {
     if (existsSync(CACHE_FILE)) {
