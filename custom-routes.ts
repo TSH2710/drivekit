@@ -231,11 +231,13 @@ app.get('/shopify/oauth/callback', async (c) => {
   const hmac = c.req.query('hmac')
   if (!code) return c.json({ error: 'Missing authorization code' }, 400)
 
+  const redirectUri = process.env.SHOPIFY_REDIRECT_URI || `${c.req.header('x-forwarded-proto') || 'https'}://${c.req.header('host')}/api/shopify/oauth/callback`
+
   try {
     const res = await fetch(`https://${SHOPIFY_STORE}/admin/oauth/access_token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: SHOPIFY_CLIENT_ID, client_secret: SHOPIFY_CLIENT_SECRET, code }),
+      body: JSON.stringify({ client_id: SHOPIFY_CLIENT_ID, client_secret: SHOPIFY_CLIENT_SECRET, code, redirect_uri: redirectUri }),
     })
 
     const contentType = res.headers.get('content-type') || ''
@@ -265,11 +267,13 @@ app.post('/shopify/oauth/exchange', async (c) => {
     return c.json({ error: 'OAuth credentials not configured' }, 400)
   }
 
+  const redirectUri = process.env.SHOPIFY_REDIRECT_URI || `${c.req.header('x-forwarded-proto') || 'https'}://${c.req.header('host')}/api/shopify/oauth/callback`
+
   try {
     const res = await fetch(`https://${SHOPIFY_STORE}/admin/oauth/access_token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: SHOPIFY_CLIENT_ID, client_secret: SHOPIFY_CLIENT_SECRET, code }),
+      body: JSON.stringify({ client_id: SHOPIFY_CLIENT_ID, client_secret: SHOPIFY_CLIENT_SECRET, code, redirect_uri: redirectUri }),
     })
     const data = await res.json() as { access_token?: string; scope?: string; error?: string }
     if (!data.access_token) return c.json({ error: data.error ?? 'Token exchange failed', details: data }, 400)
