@@ -174,27 +174,27 @@ app.get('/shopify/sync-tags', async (c) => {
 
 // ── Summer-Only Tagging ──────────────────────────────────────
 
-const STRICT_SUMMER_KEYWORDS = [
+const STRICT_SUMMER_TITLES = [
   'sun shade', 'sunshade', 'windshield sun', 'window shade',
-  'uv protection', 'cooling', 'cool pad', 'seat cooling',
-  'ventilat', 'car wash', 'foam spray', 'polishing machine',
-  'detailing towel', 'detailing', 'microfiber', 'solar freshener',
-  'kinetic solar', 'windshield cover', 'sun visor',
+  'windshield cover', 'sun visor', 'uv protection',
+  'car wash', 'foam spray', 'polishing machine',
+  'detailing towel', 'microfiber',
+  'solar freshener', 'kinetic solar',
 ]
 
-const EXPLICIT_WINTER_KEYWORDS = [
+const WINTER_TITLE_PATTERNS = [
   'snow', 'ice scraper', 'ice scrapper', 'defogger', 'defroster',
   'heated', 'heater', 'winter', 'frost', 'tire chain', 'snow chain',
   'snow brush', 'snow cover', 'winter cover', 'antifreeze', 'coolant',
 ]
 
-function classifySummer(title: string, description: string): boolean {
-  const combined = `${title} ${description}`.toLowerCase()
-  for (const kw of EXPLICIT_WINTER_KEYWORDS) {
-    if (combined.includes(kw)) return false
+function classifySummer(title: string): boolean {
+  const t = title.toLowerCase()
+  for (const kw of WINTER_TITLE_PATTERNS) {
+    if (t.includes(kw)) return false
   }
-  for (const kw of STRICT_SUMMER_KEYWORDS) {
-    if (combined.includes(kw)) return true
+  for (const kw of STRICT_SUMMER_TITLES) {
+    if (t.includes(kw)) return true
   }
   return false
 }
@@ -212,7 +212,7 @@ app.get('/shopify/summer-tag', async (c) => {
     for (const p of active) {
       const pp = p as any
       const oldTags: string[] = (pp.tags ?? '').split(',').map((t: string) => t.trim()).filter(Boolean)
-      const isSummer = classifySummer(pp.title || '', pp.body_html || '')
+      const isSummer = classifySummer(pp.title || '')
 
       const newTags = oldTags.filter(t => !/^(summer|winter|all[- ]?season|fall|spring)$/i.test(t))
 
