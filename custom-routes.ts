@@ -172,6 +172,89 @@ app.get('/shopify/sync-tags', async (c) => {
   }
 })
 
+// ── Summer-Only Tagging ──────────────────────────────────────
+
+const STRICT_SUMMER_KEYWORDS = [
+  'sun shade', 'sunshade', 'windshield sun', 'window shade',
+  'uv protection', 'cooling', 'cool pad', 'seat cooling',
+  'ventilat', 'car wash', 'foam spray', 'polishing machine',
+  'detailing towel', 'detailing', 'microfiber', 'solar freshener',
+  'kinetic solar', 'windshield cover', 'sun visor',
+]
+
+const EXPLICIT_WINTER_KEYWORDS = [
+  'snow', 'ice scraper', 'ice scrapper', 'defogger', 'defroster',
+  'heated', 'heater', 'winter', 'frost', 'tire chain', 'snow chain',
+  'snow brush', 'snow cover', 'winter cover', 'antifreeze', 'coolant',
+]
+
+function classifySummer(title: string, description: string): boolean {
+  const combined = `${title} ${description}`.toLowerCase()
+  for (const kw of EXPLICIT_WINTER_KEYWORDS) {
+    if (combined.includes(kw)) return false
+  }
+  for (const kw of STRICT_SUMMER_KEYWORDS) {
+    if (combined.includes(kw)) return true
+  }
+  return false
+}
+
+app.get('/shopify/summer-tag', async (c) => {
+  try {
+    const rawProducts = await fetchAllShopifyProducts()
+    const active = rawProducts.filter((p: any) => p.status === 'active')
+
+    let tagged = 0
+    let untagged = 0
+    let unchanged = 0
+    const results: Array<{ title: string; action: string; tags: string }> = []
+
+    for (const p of active) {
+      const pp = p as any
+      const oldTags: string[] = (pp.tags ?? '').split(',').map((t: string) => t.trim()).filter(Boolean)
+      const isSummer = classifySummer(pp.title || '', pp.body_html || '')
+
+      const newTags = oldTags.filter(t => !/^(summer|winter|all[- ]?season|fall|spring)$/i.test(t))
+
+      if (isSummer) {
+        if (!newTags.some(t => t.toLowerCase() === 'summer')) newTags.push('Summer')
+      } else {
+        const before = newTags.length
+        const filtered = newTags.filter(t => t.toLowerCase() !== 'summer')
+        if (filtered.length === before) { unchanged++; results.push({ title: pp.title, action: 'unchanged', tags: newTags.join(', ') }); continue }
+        newTags.length = 0
+        newTags.push(...filtered)
+      }
+
+      const sortedOld = [...oldTags].sort().join(', ').toLowerCase()
+      const sortedNew = [...newTags].sort().join(', ').toLowerCase()
+      if (sortedOld === sortedNew) { unchanged++; results.push({ title: pp.title, action: 'unchanged', tags: newTags.join(', ') }); continue }
+
+      try {
+        await shopifyApiPut(`/products/${pp.id}.json`, { product: { id: pp.id, tags: newTags.join(', ') } })
+        const action = isSummer ? 'TAGGED Summer' : 'removed Summer'
+        tagged++
+        results.push({ title: pp.title, action, tags: newTags.join(', ') })
+        console.log(`[summer-tag] ${action}: ${pp.title}`)
+        await new Promise(r => setTimeout(r, 500))
+      } catch (err: any) {
+        results.push({ title: pp.title, action: `error: ${err.message}`, tags: newTags.join(', ') })
+      }
+    }
+
+    return c.json({
+      ok: true,
+      total: active.length,
+      tagged: results.filter(r => r.action.startsWith('TAGGED')).length,
+      untagged: results.filter(r => r.action.startsWith('removed')).length,
+      unchanged,
+      results,
+    })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Summer tagging failed' }, 500)
+  }
+})
+
 // ── Cache Refresh (after tag sync) ────────────────────────────
 
 app.get('/shopify/cache/refresh', async (c) => {
