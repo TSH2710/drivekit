@@ -108,6 +108,86 @@ app.get('/shopify/sync', requireAdminMiddleware, async (c) => {
   }
 })
 
+// ── Shopify Tag Sync: Fix batches + remove All-Season ────────
+
+app.get('/shopify/sync-tags', async (c) => {
+  try {
+    const rawProducts = await fetchAllShopifyProducts()
+    const active = rawProducts.filter((p: any) => p.status === 'active')
+    active.sort((a: any, b: any) => a.id - b.id)
+
+    let updated = 0
+    let skipped = 0
+    const results: string[] = []
+
+    for (let i = 0; i < active.length; i++) {
+      const p = active[i] as any
+      const oldTags: string[] = (p.tags ?? '').split(',').map((t: string) => t.trim()).filter(Boolean)
+      const hasSummer = oldTags.some((t: string) => /summer/i.test(t))
+
+      // Determine correct batch
+      let batchTag: string
+      if (i < 30) batchTag = 'Batch 1'
+      else if (i < 60) batchTag = 'Batch 2'
+      else batchTag = 'Batch 3'
+
+      // Build new tags: remove All-Season/Batch1/Batch2/Batch3, add correct batch
+      const cleaned = oldTags.filter((t: string) => !/all[- ]?season/i.test(t) && !/^batch[- ]?[123]$/i.test(t))
+      cleaned.push(batchTag)
+      const newTagStr = [...new Set(cleaned)].join(', ')
+
+      // Only keep compareAtPrice on Summer products
+      const variants = (p.variants ?? []).map((v: any) => {
+        if (!hasSummer && v.compare_at_price) {
+          return { id: v.id, compare_at_price: null }
+        }
+        return null
+      }).filter(Boolean)
+
+      const tagsChanged = newTagStr.toLowerCase() !== oldTags.join(', ').toLowerCase()
+      const priceChanged = variants.length > 0
+
+      if (!tagsChanged && !priceChanged) {
+        skipped++
+        continue
+      }
+
+      try {
+        const updateData: any = { product: { id: p.id, tags: newTagStr } }
+        if (priceChanged) updateData.product.variants = variants
+
+        await shopifyApiPut(`/products/${p.id}.json`, updateData)
+        updated++
+        const changeDesc = []
+        if (tagsChanged) changeDesc.push(`tags: ${oldTags.join(',')} → ${newTagStr}`)
+        if (priceChanged) changeDesc.push('removed compareAtPrice')
+        results.push(`✅ [${batchTag}] ${p.title}: ${changeDesc.join(', ')}`)
+        await new Promise(r => setTimeout(r, 500))
+      } catch (err: any) {
+        results.push(`❌ ${p.title}: ${err.message}`)
+      }
+    }
+
+    const batchCounts = { 'Batch 1': 0, 'Batch 2': 0, 'Batch 3': 0 }
+    for (let i = 0; i < active.length; i++) {
+      if (i < 30) batchCounts['Batch 1']++
+      else if (i < 60) batchCounts['Batch 2']++
+      else batchCounts['Batch 3']++
+    }
+
+    return c.json({
+      ok: true,
+      total: active.length,
+      updated,
+      skipped,
+      batchCounts,
+      results,
+    })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Tag sync failed' }, 500)
+  }
+})
+
 app.get('/shopify/products', async (c) => {
   try {
     if (existsSync(CACHE_FILE)) {
