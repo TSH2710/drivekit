@@ -1044,7 +1044,6 @@ export type EmailLogCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * The data used to create many EmailLogs.
    */
   data: Prisma.EmailLogCreateManyInput | Prisma.EmailLogCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1063,7 +1062,6 @@ export type EmailLogCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extens
    * The data used to create many EmailLogs.
    */
   data: Prisma.EmailLogCreateManyInput | Prisma.EmailLogCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
