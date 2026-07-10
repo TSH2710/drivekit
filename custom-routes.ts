@@ -108,96 +108,65 @@ app.get('/shopify/sync', requireAdminMiddleware, async (c) => {
   }
 })
 
-// ── Shopify Tag Sync: Fix batches + remove All-Season ────────
+// ── Shopify Tag Sync: Strip all seasonal tags + deals ────────
+
+const SEASONAL_TAG_RE = /^(batch[- ]?[123]|summer|winter|all[- ]?season)$/i
 
 app.get('/shopify/sync-tags', async (c) => {
   try {
     const rawProducts = await fetchAllShopifyProducts()
     const active = rawProducts.filter((p: any) => p.status === 'active')
-    active.sort((a: any, b: any) => a.id - b.id)
 
     let updated = 0
     let skipped = 0
     const results: string[] = []
 
-    for (let i = 0; i < active.length; i++) {
-      const p = active[i] as any
-      const oldTags: string[] = (p.tags ?? '').split(',').map((t: string) => t.trim()).filter(Boolean)
-      const hasSummer = oldTags.some((t: string) => /summer/i.test(t))
+    for (const p of active) {
+      const pp = p as any
+      const oldTags: string[] = (pp.tags ?? '').split(',').map((t: string) => t.trim()).filter(Boolean)
+      const cleaned = oldTags.filter((t: string) => !SEASONAL_TAG_RE.test(t))
+      const newTagStr = cleaned.join(', ')
 
-      // Determine correct batch
-      let batchTag: string
-      if (i < 30) batchTag = 'Batch 1'
-      else if (i < 60) batchTag = 'Batch 2'
-      else batchTag = 'Batch 3'
-
-      // Build new tags: remove All-Season/Batch1/Batch2/Batch3, add correct batch
-      const cleaned = oldTags.filter((t: string) => !/all[- ]?season/i.test(t) && !/^batch[- ]?[123]$/i.test(t))
-      cleaned.push(batchTag)
-      const uniqueTags = [...new Set(cleaned)]
-      const newTagStr = uniqueTags.join(', ')
-
-      // Compare as sorted sets to avoid false positives from ordering
       const sortedOld = [...oldTags].sort().join(', ').toLowerCase()
-      const sortedNew = [...uniqueTags].sort().join(', ').toLowerCase()
-
+      const sortedNew = [...cleaned].sort().join(', ').toLowerCase()
       const tagsChanged = sortedOld !== sortedNew
-      const priceChanged = !hasSummer && (p.variants ?? []).some((v: any) => v.compare_at_price)
+      const hasAnyDeal = (pp.variants ?? []).some((v: any) => v.compare_at_price)
 
-      if (!tagsChanged && !priceChanged) {
-        skipped++
-        continue
-      }
+      if (!tagsChanged && !hasAnyDeal) { skipped++; continue }
 
       try {
-        const updateData: any = { product: { id: p.id, tags: newTagStr } }
-        await shopifyApiPut(`/products/${p.id}.json`, updateData)
+        if (tagsChanged) {
+          await shopifyApiPut(`/products/${pp.id}.json`, { product: { id: pp.id, tags: newTagStr } })
+        }
 
-        // Clear compareAtPrice for non-summer products using direct variant PATCH
-        if (priceChanged) {
-          for (const v of (p.variants ?? [])) {
-            if (!hasSummer && v.compare_at_price) {
+        if (hasAnyDeal) {
+          for (const v of (pp.variants ?? [])) {
+            if (v.compare_at_price) {
               try {
                 await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
                   method: 'PATCH',
-                  headers: {
-                    'X-Shopify-Access-Token': await ensureValidToken(),
-                    'Content-Type': 'application/json',
-                  },
+                  headers: { 'X-Shopify-Access-Token': await ensureValidToken(), 'Content-Type': 'application/json' },
                   body: JSON.stringify({ variant: { id: v.id, price: v.price, compare_at_price: null } }),
                 })
               } catch (e: any) {
-                console.log(`[sync-tags] Variant PATCH failed for ${p.title} variant ${v.id}: ${e.message}`)
+                console.log(`[sync-tags] Variant PATCH failed for ${pp.title} variant ${v.id}: ${e.message}`)
               }
             }
           }
         }
+
         updated++
-        const changeDesc = []
-        if (tagsChanged) changeDesc.push(`tags: ${oldTags.join(',')} → ${newTagStr}`)
-        if (priceChanged) changeDesc.push('removed compareAtPrice')
-        results.push(`✅ [${batchTag}] ${p.title}: ${changeDesc.join(', ')}`)
+        const changes = []
+        if (tagsChanged) changes.push(`tags: [${oldTags.join(', ')}] → [${cleaned.join(', ')}]`)
+        if (hasAnyDeal) changes.push('removed deals')
+        results.push(`✅ ${pp.title}: ${changes.join(', ')}`)
         await new Promise(r => setTimeout(r, 500))
       } catch (err: any) {
-        results.push(`❌ ${p.title}: ${err.message}`)
+        results.push(`❌ ${pp.title}: ${err.message}`)
       }
     }
 
-    const batchCounts = { 'Batch 1': 0, 'Batch 2': 0, 'Batch 3': 0 }
-    for (let i = 0; i < active.length; i++) {
-      if (i < 30) batchCounts['Batch 1']++
-      else if (i < 60) batchCounts['Batch 2']++
-      else batchCounts['Batch 3']++
-    }
-
-    return c.json({
-      ok: true,
-      total: active.length,
-      updated,
-      skipped,
-      batchCounts,
-      results,
-    })
+    return c.json({ ok: true, total: active.length, updated, skipped, results })
   } catch (err: any) {
     return c.json({ error: err.message ?? 'Tag sync failed' }, 500)
   }

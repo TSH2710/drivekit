@@ -45,9 +45,7 @@ const SUMMER_KEYWORDS = ['summer', 'cool', 'shade', 'sun', 'visor', 'windshield'
 
 // ── Generated Image Lookup ────────────────────────────────────
 
-const HANDLE_OVERRIDES: Record<string, string> = {
-  'foldable-car-windshield-sun-shade-umbrella-uv-protection-heat-insulation-parasol-auto-front-window-cover-interior-protector-summer-gadgets': 'product-sun-shade-foldable-windshield.png',
-}
+const HANDLE_OVERRIDES: Record<string, string> = {}
 
 let generatedImageMap: Map<number, string> | null = null
 
