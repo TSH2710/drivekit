@@ -10,7 +10,8 @@ RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
 RUN bunx prisma generate
 RUN bunx prisma db push --accept-data-loss || true
 
+RUN chmod +x start.sh
 RUN bun run build
 
 EXPOSE 3001
-CMD ["bun", "run", "server.tsx"]
+CMD ["./start.sh"]
