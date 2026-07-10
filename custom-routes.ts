@@ -586,6 +586,69 @@ app.get('/shopify/token-status', async (c) => {
   return c.json(lastHealthResult)
 })
 
+// ── Create Missing Variants ──────────────────────────────────
+// POST /shopify/create-variants — add color/size options to single-variant products
+
+app.post('/shopify/create-variants', async (c) => {
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const PRODUCTS = [
+    { handle: 'led-turn-signal-light-strip', optionName: 'Color', values: ['Blue', 'Ice Blue', 'Orange', 'Yellow', 'Orange Red', 'Green', 'Pink', 'Fluorescent Yellow', 'Purple', 'White'] },
+    { handle: 'smart-led-digital-tire-inflator', optionName: 'Color', values: ['Black', 'White'] },
+    { handle: 'headlight-restoration-repair-liquid', optionName: 'Size', values: ['8ml', '15ml', '30ml'] },
+    { handle: 'car-scratch-remover-repair-kit', optionName: 'Color', values: ['White', 'Black', 'Grey', 'Silver'] },
+    { handle: 'car-seat-back-storage-pocket', optionName: 'Color', values: ['Black', 'Brown', 'Beige', 'Gray'] },
+    { handle: 'car-wash-cleaning-gloves', optionName: 'Color', values: ['Black', 'Red', 'Blue'] },
+    { handle: 'emergency-snow-tire-chains', optionName: 'Quantity', values: ['1 Pair', '2 Pairs', '4 Pairs'] },
+    { handle: 'inflatable-car-travel-air-mattress', optionName: 'Color', values: ['Black', 'Black+Pillow', 'Beige', 'Beige+Pillow', 'Gray', 'Gray+Pillow'] },
+    { handle: 'crystal-diamond-car-interior-decor', optionName: 'Color', values: ['Black', 'Red', 'Blue', 'Gold'] },
+    { handle: 'car-seat-storage-organizer-bag', optionName: 'Color', values: ['Black', 'Brown', 'Beige', 'Gray'] },
+  ]
+
+  const allRes = await fetch(`${SHOPIFY_API}/graphql.json`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+    body: JSON.stringify({ query: `{ products(first: 50) { edges { node { id handle title options { name values } } } } }` }),
+  }).then(r => r.json())
+
+  const products: Record<string, any> = {}
+  for (const e of allRes.data?.products?.edges || []) products[e.node.handle] = e.node
+
+  const results: any[] = []
+
+  for (const p of PRODUCTS) {
+    const product = products[p.handle]
+    if (!product) { results.push({ handle: p.handle, status: 'not_found' }); continue }
+
+    const existingOptions = (product.options || []) as any[]
+    const hasRealOptions = existingOptions.length > 1 || (existingOptions.length === 1 && existingOptions[0]?.values?.length > 1)
+    if (hasRealOptions) {
+      results.push({ handle: p.handle, title: product.title, status: 'already_has_options' })
+      continue
+    }
+
+    const mutRes = await fetch(`${SHOPIFY_API}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+      body: JSON.stringify({
+        query: `mutation productOptionCreate($productId: ID!, $option: ProductOptionInput!) { productOptionCreate(productId: $productId, option: $option) { product { id options { name values } } userErrors { field message } } }`,
+        variables: { productId: product.id, option: { name: p.optionName, values: p.values.map(v => ({ name: v })) } },
+      }),
+    }).then(r => r.json())
+
+    const errors = mutRes.data?.productOptionCreate?.userErrors || []
+    if (errors.length > 0) {
+      results.push({ handle: p.handle, title: product.title, status: 'error', error: errors[0].message })
+    } else {
+      results.push({ handle: p.handle, title: product.title, status: 'created', option: p.optionName, values: p.values })
+    }
+    await new Promise(r => setTimeout(r, 500))
+  }
+
+  return c.json({ ok: true, results, totalUpdated: results.filter(r => r.status === 'created').length })
+})
+
 // ── Auto-Reauth ───────────────────────────────────────────────
 // Checks token health, returns re-auth URL if invalid
 
