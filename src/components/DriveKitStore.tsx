@@ -137,6 +137,12 @@ function getDiscountPercent(price: number, compareAt: number | null): number | n
   return Math.round(((compareAt - price) / compareAt) * 100)
 }
 
+function getBadgeTag(tags: string[]): string | null {
+  const batchTag = tags.find((t) => /batch[- ]?[123]/i.test(t))
+  if (batchTag) return batchTag
+  return tags.find((t) => !/all[- ]?season/i.test(t)) ?? null
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ProductMeta({ product }: { product: Product }) {
@@ -157,7 +163,7 @@ function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompa
   const compareAt = getCompareAtPrice(product.variants)
   const discount = getDiscountPercent(product.minPrice, compareAt)
   const firstImage = product.images[0]
-  const badge = product.tags[0] ?? null
+  const badge = getBadgeTag(product.tags)
 
   return (
     <div
@@ -1561,7 +1567,11 @@ export default function DriveKitStore() {
     else if (activeCategory === 'Best Sellers') list = [...list].sort((a, b) => b.variants.reduce((s, v) => s + v.inventoryQuantity, 0) - a.variants.reduce((s, v) => s + v.inventoryQuantity, 0)).slice(0, 15)
     else if (activeCategory === 'Top Rated') list = [...list].filter(p => p.inStock).sort((a, b) => { const aScore = a.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(a.variants) ? 50 : 0); const bScore = b.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(b.variants) ? 50 : 0); return bScore - aScore }).slice(0, 12)
     else if (activeCategory === 'New Arrivals') list = [...list].sort((a, b) => b.id - a.id).slice(0, 12)
-    else if (activeCategory === 'Deals') list = list.filter((p) => getCompareAtPrice(p.variants) !== null && getCompareAtPrice(p.variants)! > p.minPrice)
+    else if (activeCategory === 'Deals') list = list.filter((p) => {
+      const hasDiscount = getCompareAtPrice(p.variants) !== null && getCompareAtPrice(p.variants)! > p.minPrice
+      const hasBatchTag = p.tags.some((t) => /batch[- ]?[123]/i.test(t))
+      return hasDiscount && hasBatchTag
+    })
     else if (activeCategory) {
       const catLower = activeCategory.toLowerCase()
       const subCatItems = NAV_CATEGORIES.find((c) => c.label === activeCategory)?.items ?? []
