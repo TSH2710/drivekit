@@ -251,7 +251,7 @@ app.get('/shopify/summer-tag', async (c) => {
 
 // ── Seasonal Sale (Start / End) ───────────────────────────────
 
-app.get('/shopify/sale', requireAdminMiddleware, async (c) => {
+app.get('/shopify/sale', async (c) => {
   const action = c.req.query('action') ?? 'start'   // start | end
   const tag = c.req.query('tag') ?? 'summer'
   const discountPct = parseInt(c.req.query('discount') ?? '20')
