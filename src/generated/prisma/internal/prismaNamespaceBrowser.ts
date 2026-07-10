@@ -51,7 +51,15 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  User: 'User'
+  User: 'User',
+  Order: 'Order',
+  OrderItem: 'OrderItem',
+  WaitlistEntry: 'WaitlistEntry',
+  SiteContent: 'SiteContent',
+  Review: 'Review',
+  ProductOverride: 'ProductOverride',
+  NewsletterSubscriber: 'NewsletterSubscriber',
+  EmailLog: 'EmailLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -71,11 +79,140 @@ export const UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
   name: 'name',
+  passwordHash: 'passwordHash',
+  role: 'role',
+  emailOptIn: 'emailOptIn',
+  emailVerified: 'emailVerified',
+  verificationToken: 'verificationToken',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const OrderScalarFieldEnum = {
+  id: 'id',
+  orderNumber: 'orderNumber',
+  userId: 'userId',
+  email: 'email',
+  status: 'status',
+  total: 'total',
+  currency: 'currency',
+  shippingName: 'shippingName',
+  shippingAddress1: 'shippingAddress1',
+  shippingAddress2: 'shippingAddress2',
+  shippingCity: 'shippingCity',
+  shippingState: 'shippingState',
+  shippingZip: 'shippingZip',
+  shippingCountry: 'shippingCountry',
+  shopifyOrderId: 'shopifyOrderId',
+  shopifyOrderNum: 'shopifyOrderNum',
+  promoCode: 'promoCode',
+  discount: 'discount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrderScalarFieldEnum = (typeof OrderScalarFieldEnum)[keyof typeof OrderScalarFieldEnum]
+
+
+export const OrderItemScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  productId: 'productId',
+  variantId: 'variantId',
+  title: 'title',
+  variantTitle: 'variantTitle',
+  quantity: 'quantity',
+  price: 'price',
+  total: 'total'
+} as const
+
+export type OrderItemScalarFieldEnum = (typeof OrderItemScalarFieldEnum)[keyof typeof OrderItemScalarFieldEnum]
+
+
+export const WaitlistEntryScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  productId: 'productId',
+  productTitle: 'productTitle',
+  createdAt: 'createdAt'
+} as const
+
+export type WaitlistEntryScalarFieldEnum = (typeof WaitlistEntryScalarFieldEnum)[keyof typeof WaitlistEntryScalarFieldEnum]
+
+
+export const SiteContentScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  value: 'value',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SiteContentScalarFieldEnum = (typeof SiteContentScalarFieldEnum)[keyof typeof SiteContentScalarFieldEnum]
+
+
+export const ReviewScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  userId: 'userId',
+  displayName: 'displayName',
+  email: 'email',
+  rating: 'rating',
+  title: 'title',
+  body: 'body',
+  verified: 'verified',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReviewScalarFieldEnum = (typeof ReviewScalarFieldEnum)[keyof typeof ReviewScalarFieldEnum]
+
+
+export const ProductOverrideScalarFieldEnum = {
+  id: 'id',
+  shopifyId: 'shopifyId',
+  title: 'title',
+  description: 'description',
+  vendor: 'vendor',
+  productType: 'productType',
+  tags: 'tags',
+  hidden: 'hidden',
+  customPrice: 'customPrice',
+  customCompareAt: 'customCompareAt',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type ProductOverrideScalarFieldEnum = (typeof ProductOverrideScalarFieldEnum)[keyof typeof ProductOverrideScalarFieldEnum]
+
+
+export const NewsletterSubscriberScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  userId: 'userId',
+  name: 'name',
+  source: 'source',
+  subscribedAt: 'subscribedAt',
+  unsubscribed: 'unsubscribed',
+  unsubscribedAt: 'unsubscribedAt'
+} as const
+
+export type NewsletterSubscriberScalarFieldEnum = (typeof NewsletterSubscriberScalarFieldEnum)[keyof typeof NewsletterSubscriberScalarFieldEnum]
+
+
+export const EmailLogScalarFieldEnum = {
+  id: 'id',
+  to: 'to',
+  subject: 'subject',
+  type: 'type',
+  status: 'status',
+  sentAt: 'sentAt',
+  campaignId: 'campaignId'
+} as const
+
+export type EmailLogScalarFieldEnum = (typeof EmailLogScalarFieldEnum)[keyof typeof EmailLogScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -11,24 +11,80 @@ import { PrismaClient } from "./prisma/client"
 
 // Route imports
 import { createUserRoutes, setPrisma as setPrismaUser, setUserHooks } from "./user.routes"
+import { createOrderRoutes, setPrisma as setPrismaOrder, setOrderHooks } from "./order.routes"
+import { createOrderItemRoutes, setPrisma as setPrismaOrderItem, setOrderItemHooks } from "./order-item.routes"
+import { createWaitlistEntryRoutes, setPrisma as setPrismaWaitlistEntry, setWaitlistEntryHooks } from "./waitlist-entry.routes"
+import { createSiteContentRoutes, setPrisma as setPrismaSiteContent, setSiteContentHooks } from "./site-content.routes"
+import { createReviewRoutes, setPrisma as setPrismaReview, setReviewHooks } from "./review.routes"
+import { createProductOverrideRoutes, setPrisma as setPrismaProductOverride, setProductOverrideHooks } from "./product-override.routes"
+import { createNewsletterSubscriberRoutes, setPrisma as setPrismaNewsletterSubscriber, setNewsletterSubscriberHooks } from "./newsletter-subscriber.routes"
+import { createEmailLogRoutes, setPrisma as setPrismaEmailLog, setEmailLogHooks } from "./email-log.routes"
 
 // Hook imports
 import { userHooks } from "./user.hooks"
+import { orderHooks } from "./order.hooks"
+import { orderItemHooks } from "./order-item.hooks"
+import { waitlistEntryHooks } from "./waitlist-entry.hooks"
+import { siteContentHooks } from "./site-content.hooks"
+import { reviewHooks } from "./review.hooks"
+import { productOverrideHooks } from "./product-override.hooks"
+import { newsletterSubscriberHooks } from "./newsletter-subscriber.hooks"
+import { emailLogHooks } from "./email-log.hooks"
 
 // Re-export route creators and setters
 export {
   createUserRoutes,
   setPrismaUser,
-  setUserHooks
+  setUserHooks,
+  createOrderRoutes,
+  setPrismaOrder,
+  setOrderHooks,
+  createOrderItemRoutes,
+  setPrismaOrderItem,
+  setOrderItemHooks,
+  createWaitlistEntryRoutes,
+  setPrismaWaitlistEntry,
+  setWaitlistEntryHooks,
+  createSiteContentRoutes,
+  setPrismaSiteContent,
+  setSiteContentHooks,
+  createReviewRoutes,
+  setPrismaReview,
+  setReviewHooks,
+  createProductOverrideRoutes,
+  setPrismaProductOverride,
+  setProductOverrideHooks,
+  createNewsletterSubscriberRoutes,
+  setPrismaNewsletterSubscriber,
+  setNewsletterSubscriberHooks,
+  createEmailLogRoutes,
+  setPrismaEmailLog,
+  setEmailLogHooks
 }
 
 // Re-export hooks (model-specific)
 export {
-  userHooks
+  userHooks,
+  orderHooks,
+  orderItemHooks,
+  waitlistEntryHooks,
+  siteContentHooks,
+  reviewHooks,
+  productOverrideHooks,
+  newsletterSubscriberHooks,
+  emailLogHooks
 }
 
 // Re-export hook types
 export type { UserHooks } from "./user.hooks"
+export type { OrderHooks } from "./order.hooks"
+export type { OrderItemHooks } from "./order-item.hooks"
+export type { WaitlistEntryHooks } from "./waitlist-entry.hooks"
+export type { SiteContentHooks } from "./site-content.hooks"
+export type { ReviewHooks } from "./review.hooks"
+export type { ProductOverrideHooks } from "./product-override.hooks"
+export type { NewsletterSubscriberHooks } from "./newsletter-subscriber.hooks"
+export type { EmailLogHooks } from "./email-log.hooks"
 
 /**
  * Create all routes and mount them on a single Hono app
@@ -38,12 +94,36 @@ export function createAllRoutes(prisma: PrismaClient): Hono {
 
   // Set Prisma client for all routes
   setPrismaUser(prisma)
+  setPrismaOrder(prisma)
+  setPrismaOrderItem(prisma)
+  setPrismaWaitlistEntry(prisma)
+  setPrismaSiteContent(prisma)
+  setPrismaReview(prisma)
+  setPrismaProductOverride(prisma)
+  setPrismaNewsletterSubscriber(prisma)
+  setPrismaEmailLog(prisma)
 
   // Set hooks for all routes
   setUserHooks(userHooks)
+  setOrderHooks(orderHooks)
+  setOrderItemHooks(orderItemHooks)
+  setWaitlistEntryHooks(waitlistEntryHooks)
+  setSiteContentHooks(siteContentHooks)
+  setReviewHooks(reviewHooks)
+  setProductOverrideHooks(productOverrideHooks)
+  setNewsletterSubscriberHooks(newsletterSubscriberHooks)
+  setEmailLogHooks(emailLogHooks)
 
   // Mount routes
   app.route("/users", createUserRoutes())
+  app.route("/orders", createOrderRoutes())
+  app.route("/order-items", createOrderItemRoutes())
+  app.route("/waitlist-entries", createWaitlistEntryRoutes())
+  app.route("/site-contents", createSiteContentRoutes())
+  app.route("/reviews", createReviewRoutes())
+  app.route("/product-overrides", createProductOverrideRoutes())
+  app.route("/newsletter-subscribers", createNewsletterSubscriberRoutes())
+  app.route("/email-logs", createEmailLogRoutes())
 
   return app
 }

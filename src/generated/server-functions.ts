@@ -12,6 +12,30 @@ import type {
   UserType,
   UserCreateInput,
   UserUpdateInput,
+  OrderType,
+  OrderCreateInput,
+  OrderUpdateInput,
+  OrderItemType,
+  OrderItemCreateInput,
+  OrderItemUpdateInput,
+  WaitlistEntryType,
+  WaitlistEntryCreateInput,
+  WaitlistEntryUpdateInput,
+  SiteContentType,
+  SiteContentCreateInput,
+  SiteContentUpdateInput,
+  ReviewType,
+  ReviewCreateInput,
+  ReviewUpdateInput,
+  ProductOverrideType,
+  ProductOverrideCreateInput,
+  ProductOverrideUpdateInput,
+  NewsletterSubscriberType,
+  NewsletterSubscriberCreateInput,
+  NewsletterSubscriberUpdateInput,
+  EmailLogType,
+  EmailLogCreateInput,
+  EmailLogUpdateInput,
 } from './types'
 
 /** Get the API base URL */
@@ -109,6 +133,734 @@ export async function deleteUser(args: { data: { id: string; userId?: string } }
   if (!response.ok) {
     const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
     throw new Error(err.error?.message || 'Failed to delete User')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// Order Client Functions
+// ============================================================================
+
+/**
+ * List all Order records
+ */
+export async function getOrderList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<OrderType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/orders${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list Order')
+  }
+  const json = await response.json()
+  return (json.items || []) as OrderType[]
+}
+
+/**
+ * Get a single Order by ID
+ */
+export async function getOrderById(args: { data: { id: string; userId?: string } }): Promise<OrderType> {
+  const url = `${getApiBase()}/api/orders/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Order not found')
+  }
+  const json = await response.json()
+  return json.data as OrderType
+}
+
+/**
+ * Create a new Order
+ */
+export async function createOrder(args: { data: { input: OrderCreateInput; userId?: string } }): Promise<OrderType> {
+  const url = `${getApiBase()}/api/orders`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create Order')
+  }
+  const json = await response.json()
+  return json.data as OrderType
+}
+
+/**
+ * Update an existing Order
+ */
+export async function updateOrder(args: { data: { id: string; input: OrderUpdateInput; userId?: string } }): Promise<OrderType> {
+  const url = `${getApiBase()}/api/orders/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update Order')
+  }
+  const json = await response.json()
+  return json.data as OrderType
+}
+
+/**
+ * Delete a Order
+ */
+export async function deleteOrder(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/orders/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete Order')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// OrderItem Client Functions
+// ============================================================================
+
+/**
+ * List all OrderItem records
+ */
+export async function getOrderItemList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<OrderItemType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/order-items${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list OrderItem')
+  }
+  const json = await response.json()
+  return (json.items || []) as OrderItemType[]
+}
+
+/**
+ * Get a single OrderItem by ID
+ */
+export async function getOrderItemById(args: { data: { id: string; userId?: string } }): Promise<OrderItemType> {
+  const url = `${getApiBase()}/api/order-items/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'OrderItem not found')
+  }
+  const json = await response.json()
+  return json.data as OrderItemType
+}
+
+/**
+ * Create a new OrderItem
+ */
+export async function createOrderItem(args: { data: { input: OrderItemCreateInput; userId?: string } }): Promise<OrderItemType> {
+  const url = `${getApiBase()}/api/order-items`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create OrderItem')
+  }
+  const json = await response.json()
+  return json.data as OrderItemType
+}
+
+/**
+ * Update an existing OrderItem
+ */
+export async function updateOrderItem(args: { data: { id: string; input: OrderItemUpdateInput; userId?: string } }): Promise<OrderItemType> {
+  const url = `${getApiBase()}/api/order-items/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update OrderItem')
+  }
+  const json = await response.json()
+  return json.data as OrderItemType
+}
+
+/**
+ * Delete a OrderItem
+ */
+export async function deleteOrderItem(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/order-items/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete OrderItem')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// WaitlistEntry Client Functions
+// ============================================================================
+
+/**
+ * List all WaitlistEntry records
+ */
+export async function getWaitlistEntryList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<WaitlistEntryType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/waitlist-entries${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list WaitlistEntry')
+  }
+  const json = await response.json()
+  return (json.items || []) as WaitlistEntryType[]
+}
+
+/**
+ * Get a single WaitlistEntry by ID
+ */
+export async function getWaitlistEntryById(args: { data: { id: string; userId?: string } }): Promise<WaitlistEntryType> {
+  const url = `${getApiBase()}/api/waitlist-entries/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'WaitlistEntry not found')
+  }
+  const json = await response.json()
+  return json.data as WaitlistEntryType
+}
+
+/**
+ * Create a new WaitlistEntry
+ */
+export async function createWaitlistEntry(args: { data: { input: WaitlistEntryCreateInput; userId?: string } }): Promise<WaitlistEntryType> {
+  const url = `${getApiBase()}/api/waitlist-entries`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create WaitlistEntry')
+  }
+  const json = await response.json()
+  return json.data as WaitlistEntryType
+}
+
+/**
+ * Update an existing WaitlistEntry
+ */
+export async function updateWaitlistEntry(args: { data: { id: string; input: WaitlistEntryUpdateInput; userId?: string } }): Promise<WaitlistEntryType> {
+  const url = `${getApiBase()}/api/waitlist-entries/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update WaitlistEntry')
+  }
+  const json = await response.json()
+  return json.data as WaitlistEntryType
+}
+
+/**
+ * Delete a WaitlistEntry
+ */
+export async function deleteWaitlistEntry(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/waitlist-entries/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete WaitlistEntry')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// SiteContent Client Functions
+// ============================================================================
+
+/**
+ * List all SiteContent records
+ */
+export async function getSiteContentList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<SiteContentType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/site-contents${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list SiteContent')
+  }
+  const json = await response.json()
+  return (json.items || []) as SiteContentType[]
+}
+
+/**
+ * Get a single SiteContent by ID
+ */
+export async function getSiteContentById(args: { data: { id: string; userId?: string } }): Promise<SiteContentType> {
+  const url = `${getApiBase()}/api/site-contents/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'SiteContent not found')
+  }
+  const json = await response.json()
+  return json.data as SiteContentType
+}
+
+/**
+ * Create a new SiteContent
+ */
+export async function createSiteContent(args: { data: { input: SiteContentCreateInput; userId?: string } }): Promise<SiteContentType> {
+  const url = `${getApiBase()}/api/site-contents`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create SiteContent')
+  }
+  const json = await response.json()
+  return json.data as SiteContentType
+}
+
+/**
+ * Update an existing SiteContent
+ */
+export async function updateSiteContent(args: { data: { id: string; input: SiteContentUpdateInput; userId?: string } }): Promise<SiteContentType> {
+  const url = `${getApiBase()}/api/site-contents/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update SiteContent')
+  }
+  const json = await response.json()
+  return json.data as SiteContentType
+}
+
+/**
+ * Delete a SiteContent
+ */
+export async function deleteSiteContent(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/site-contents/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete SiteContent')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// Review Client Functions
+// ============================================================================
+
+/**
+ * List all Review records
+ */
+export async function getReviewList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<ReviewType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/reviews${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list Review')
+  }
+  const json = await response.json()
+  return (json.items || []) as ReviewType[]
+}
+
+/**
+ * Get a single Review by ID
+ */
+export async function getReviewById(args: { data: { id: string; userId?: string } }): Promise<ReviewType> {
+  const url = `${getApiBase()}/api/reviews/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Review not found')
+  }
+  const json = await response.json()
+  return json.data as ReviewType
+}
+
+/**
+ * Create a new Review
+ */
+export async function createReview(args: { data: { input: ReviewCreateInput; userId?: string } }): Promise<ReviewType> {
+  const url = `${getApiBase()}/api/reviews`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create Review')
+  }
+  const json = await response.json()
+  return json.data as ReviewType
+}
+
+/**
+ * Update an existing Review
+ */
+export async function updateReview(args: { data: { id: string; input: ReviewUpdateInput; userId?: string } }): Promise<ReviewType> {
+  const url = `${getApiBase()}/api/reviews/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update Review')
+  }
+  const json = await response.json()
+  return json.data as ReviewType
+}
+
+/**
+ * Delete a Review
+ */
+export async function deleteReview(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/reviews/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete Review')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// ProductOverride Client Functions
+// ============================================================================
+
+/**
+ * List all ProductOverride records
+ */
+export async function getProductOverrideList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<ProductOverrideType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/product-overrides${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list ProductOverride')
+  }
+  const json = await response.json()
+  return (json.items || []) as ProductOverrideType[]
+}
+
+/**
+ * Get a single ProductOverride by ID
+ */
+export async function getProductOverrideById(args: { data: { id: string; userId?: string } }): Promise<ProductOverrideType> {
+  const url = `${getApiBase()}/api/product-overrides/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'ProductOverride not found')
+  }
+  const json = await response.json()
+  return json.data as ProductOverrideType
+}
+
+/**
+ * Create a new ProductOverride
+ */
+export async function createProductOverride(args: { data: { input: ProductOverrideCreateInput; userId?: string } }): Promise<ProductOverrideType> {
+  const url = `${getApiBase()}/api/product-overrides`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create ProductOverride')
+  }
+  const json = await response.json()
+  return json.data as ProductOverrideType
+}
+
+/**
+ * Update an existing ProductOverride
+ */
+export async function updateProductOverride(args: { data: { id: string; input: ProductOverrideUpdateInput; userId?: string } }): Promise<ProductOverrideType> {
+  const url = `${getApiBase()}/api/product-overrides/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update ProductOverride')
+  }
+  const json = await response.json()
+  return json.data as ProductOverrideType
+}
+
+/**
+ * Delete a ProductOverride
+ */
+export async function deleteProductOverride(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/product-overrides/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete ProductOverride')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// NewsletterSubscriber Client Functions
+// ============================================================================
+
+/**
+ * List all NewsletterSubscriber records
+ */
+export async function getNewsletterSubscriberList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<NewsletterSubscriberType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/newsletter-subscribers${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list NewsletterSubscriber')
+  }
+  const json = await response.json()
+  return (json.items || []) as NewsletterSubscriberType[]
+}
+
+/**
+ * Get a single NewsletterSubscriber by ID
+ */
+export async function getNewsletterSubscriberById(args: { data: { id: string; userId?: string } }): Promise<NewsletterSubscriberType> {
+  const url = `${getApiBase()}/api/newsletter-subscribers/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'NewsletterSubscriber not found')
+  }
+  const json = await response.json()
+  return json.data as NewsletterSubscriberType
+}
+
+/**
+ * Create a new NewsletterSubscriber
+ */
+export async function createNewsletterSubscriber(args: { data: { input: NewsletterSubscriberCreateInput; userId?: string } }): Promise<NewsletterSubscriberType> {
+  const url = `${getApiBase()}/api/newsletter-subscribers`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create NewsletterSubscriber')
+  }
+  const json = await response.json()
+  return json.data as NewsletterSubscriberType
+}
+
+/**
+ * Update an existing NewsletterSubscriber
+ */
+export async function updateNewsletterSubscriber(args: { data: { id: string; input: NewsletterSubscriberUpdateInput; userId?: string } }): Promise<NewsletterSubscriberType> {
+  const url = `${getApiBase()}/api/newsletter-subscribers/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update NewsletterSubscriber')
+  }
+  const json = await response.json()
+  return json.data as NewsletterSubscriberType
+}
+
+/**
+ * Delete a NewsletterSubscriber
+ */
+export async function deleteNewsletterSubscriber(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/newsletter-subscribers/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete NewsletterSubscriber')
+  }
+  return { success: true }
+}
+
+// ============================================================================
+// EmailLog Client Functions
+// ============================================================================
+
+/**
+ * List all EmailLog records
+ */
+export async function getEmailLogList(args: { data: { userId?: string; where?: Record<string, unknown> } }): Promise<EmailLogType[]> {
+  const params = new URLSearchParams()
+  if (args.data.userId) params.set('userId', args.data.userId)
+  if (args.data.where) {
+    for (const [key, value] of Object.entries(args.data.where)) {
+      if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  const url = `${getApiBase()}/api/email-logs${qs ? `?${qs}` : ''}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to list EmailLog')
+  }
+  const json = await response.json()
+  return (json.items || []) as EmailLogType[]
+}
+
+/**
+ * Get a single EmailLog by ID
+ */
+export async function getEmailLogById(args: { data: { id: string; userId?: string } }): Promise<EmailLogType> {
+  const url = `${getApiBase()}/api/email-logs/${args.data.id}`
+  const response = await fetch(url)
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'EmailLog not found')
+  }
+  const json = await response.json()
+  return json.data as EmailLogType
+}
+
+/**
+ * Create a new EmailLog
+ */
+export async function createEmailLog(args: { data: { input: EmailLogCreateInput; userId?: string } }): Promise<EmailLogType> {
+  const url = `${getApiBase()}/api/email-logs`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to create EmailLog')
+  }
+  const json = await response.json()
+  return json.data as EmailLogType
+}
+
+/**
+ * Update an existing EmailLog
+ */
+export async function updateEmailLog(args: { data: { id: string; input: EmailLogUpdateInput; userId?: string } }): Promise<EmailLogType> {
+  const url = `${getApiBase()}/api/email-logs/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args.data.input),
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to update EmailLog')
+  }
+  const json = await response.json()
+  return json.data as EmailLogType
+}
+
+/**
+ * Delete a EmailLog
+ */
+export async function deleteEmailLog(args: { data: { id: string; userId?: string } }): Promise<{ success: boolean }> {
+  const url = `${getApiBase()}/api/email-logs/${args.data.id}`
+  const response = await fetch(url, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }))
+    throw new Error(err.error?.message || 'Failed to delete EmailLog')
   }
   return { success: true }
 }

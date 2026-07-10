@@ -17,9 +17,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-    watch: {
-      ignored: ['**/.shogo/**'],
-    },
   },
   resolve: {
     alias: {
