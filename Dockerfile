@@ -4,12 +4,12 @@ WORKDIR /app
 COPY package.json bun.lock* ./
 RUN bun install
 
-COPY prisma ./prisma
+COPY . .
+
 RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
 RUN bunx prisma generate
-RUN bunx prisma db push --skip-generate || true
+RUN bunx prisma db push --accept-data-loss || true
 
-COPY . .
 RUN bun run build
 
 EXPOSE 3001
