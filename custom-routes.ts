@@ -228,6 +228,7 @@ app.get('/shopify/oauth/authorize', async (c) => {
 
 app.get('/shopify/oauth/callback', async (c) => {
   const code = c.req.query('code')
+  const hmac = c.req.query('hmac')
   if (!code) return c.json({ error: 'Missing authorization code' }, 400)
 
   try {
@@ -236,6 +237,14 @@ app.get('/shopify/oauth/callback', async (c) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: SHOPIFY_CLIENT_ID, client_secret: SHOPIFY_CLIENT_SECRET, code }),
     })
+
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      const text = await res.text()
+      console.error('[shopify-oauth] Non-JSON response from Shopify:', res.status, text.slice(0, 200))
+      return c.json({ error: `Shopify returned an error (HTTP ${res.status}). The authorization code may have already been used. Please try again.`, status: res.status }, 402)
+    }
+
     const data = await res.json() as { access_token?: string; scope?: string; error?: string }
     if (!data.access_token) return c.json({ error: data.error ?? 'Token exchange failed', details: data }, 400)
 
@@ -243,6 +252,7 @@ app.get('/shopify/oauth/callback', async (c) => {
     console.log('[shopify-oauth] Token received! Scopes:', data.scope)
     return c.json({ ok: true, message: 'Shopify connected! Token saved.', scope: data.scope })
   } catch (err: any) {
+    console.error('[shopify-oauth] Callback error:', err.message)
     return c.json({ error: err.message ?? 'OAuth callback failed' }, 500)
   }
 })
