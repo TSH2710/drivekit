@@ -153,15 +153,23 @@ app.get('/shopify/sync-tags', async (c) => {
         const updateData: any = { product: { id: p.id, tags: newTagStr } }
         await shopifyApiPut(`/products/${p.id}.json`, updateData)
 
-        // Clear compareAtPrice for non-summer products (set equal to price)
+        // Clear compareAtPrice for non-summer products using direct variant PATCH
         if (priceChanged) {
-          const variants = (p.variants ?? [])
-            .filter((v: any) => !hasSummer && v.compare_at_price)
-            .map((v: any) => ({ id: v.id, price: v.price, compare_at_price: v.price }))
-          if (variants.length > 0) {
-            await shopifyApiPut(`/products/${p.id}.json`, {
-              product: { id: p.id, variants },
-            })
+          for (const v of (p.variants ?? [])) {
+            if (!hasSummer && v.compare_at_price) {
+              try {
+                await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
+                  method: 'PATCH',
+                  headers: {
+                    'X-Shopify-Access-Token': await ensureValidToken(),
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ variant: { id: v.id, price: v.price, compare_at_price: null } }),
+                })
+              } catch (e: any) {
+                console.log(`[sync-tags] Variant PATCH failed for ${p.title} variant ${v.id}: ${e.message}`)
+              }
+            }
           }
         }
         updated++
