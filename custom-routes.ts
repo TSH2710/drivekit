@@ -141,16 +141,8 @@ app.get('/shopify/sync-tags', async (c) => {
       const sortedOld = [...oldTags].sort().join(', ').toLowerCase()
       const sortedNew = [...uniqueTags].sort().join(', ').toLowerCase()
 
-      // Only keep compareAtPrice on Summer products
-      const variants = (p.variants ?? []).map((v: any) => {
-        if (!hasSummer && v.compare_at_price) {
-          return { id: v.id, price: v.price, compare_at_price: null }
-        }
-        return null
-      }).filter(Boolean)
-
       const tagsChanged = sortedOld !== sortedNew
-      const priceChanged = variants.length > 0
+      const priceChanged = !hasSummer && (p.variants ?? []).some((v: any) => v.compare_at_price)
 
       if (!tagsChanged && !priceChanged) {
         skipped++
@@ -159,9 +151,29 @@ app.get('/shopify/sync-tags', async (c) => {
 
       try {
         const updateData: any = { product: { id: p.id, tags: newTagStr } }
-        if (priceChanged) updateData.product.variants = variants
-
         await shopifyApiPut(`/products/${p.id}.json`, updateData)
+
+        // Use GraphQL to clear compare_at_price (REST API doesn't handle null well)
+        if (priceChanged) {
+          const token = await ensureValidToken()
+          for (const v of (p.variants ?? [])) {
+            if (!hasSummer && v.compare_at_price) {
+              await fetch(`${SHOPIFY_API.replace('/2024-10', '')}/graphql.json`, {
+                method: 'POST',
+                headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  query: `mutation productVariantUpdate(\$input: ProductVariantInput!) { productVariantUpdate(input: \$input) { productVariant { id compareAtPrice } userErrors { field message } } }`,
+                  variables: { input: { id: `gid://shopify/ProductVariant/${v.id}`, compareAtPrice: null } },
+                }),
+              }).then(r => r.json()).then((d: any) => {
+                if (d?.data?.productVariantUpdate?.userErrors?.length) {
+                  console.log(`[sync-tags] GraphQL variant update error for ${p.title}:`, d.data.productVariantUpdate.userErrors)
+                }
+              }).catch(e => console.log(`[sync-tags] GraphQL variant update failed for ${p.title}: ${e.message}`))
+              await new Promise(r => setTimeout(r, 300))
+            }
+          }
+        }
         updated++
         const changeDesc = []
         if (tagsChanged) changeDesc.push(`tags: ${oldTags.join(',')} → ${newTagStr}`)
