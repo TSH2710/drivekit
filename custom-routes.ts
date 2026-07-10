@@ -218,12 +218,6 @@ app.get('/shopify/summer-tag', async (c) => {
 
       if (isSummer) {
         if (!newTags.some(t => t.toLowerCase() === 'summer')) newTags.push('Summer')
-      } else {
-        const before = newTags.length
-        const filtered = newTags.filter(t => t.toLowerCase() !== 'summer')
-        if (filtered.length === before) { unchanged++; results.push({ title: pp.title, action: 'unchanged', tags: newTags.join(', ') }); continue }
-        newTags.length = 0
-        newTags.push(...filtered)
       }
 
       const sortedOld = [...oldTags].sort().join(', ').toLowerCase()
