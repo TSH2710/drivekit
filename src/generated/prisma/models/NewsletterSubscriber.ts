@@ -456,6 +456,7 @@ export type NewsletterSubscriberCreateOrConnectWithoutUserInput = {
 
 export type NewsletterSubscriberCreateManyUserInputEnvelope = {
   data: Prisma.NewsletterSubscriberCreateManyUserInput | Prisma.NewsletterSubscriberCreateManyUserInput[]
+  skipDuplicates?: boolean
 }
 
 export type NewsletterSubscriberUpsertWithWhereUniqueWithoutUserInput = {
@@ -1268,6 +1269,7 @@ export type NewsletterSubscriberCreateManyArgs<ExtArgs extends runtime.Types.Ext
    * The data used to create many NewsletterSubscribers.
    */
   data: Prisma.NewsletterSubscriberCreateManyInput | Prisma.NewsletterSubscriberCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1286,6 +1288,7 @@ export type NewsletterSubscriberCreateManyAndReturnArgs<ExtArgs extends runtime.
    * The data used to create many NewsletterSubscribers.
    */
   data: Prisma.NewsletterSubscriberCreateManyInput | Prisma.NewsletterSubscriberCreateManyInput[]
+  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */
