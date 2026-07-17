@@ -2230,15 +2230,27 @@ app.get('/shopify/fix-fulfillment', async (c) => {
   }
 
   try {
-    // Step 1: Get shop locations
-    const locData = await shopifyGet('/locations.json')
-    const locations = locData.locations ?? []
-    report.locations = locations.map((l: any) => ({ id: l.id, name: l.name, active: l.active }))
-    report.steps.push(`Found ${locations.length} locations`)
-    const activeLocation = locations.find((l: any) => l.active) ?? locations[0]
+    // Step 1: Get location via GraphQL (doesn't require read_locations scope)
+    let activeLocationId: number | null = null
+    try {
+      const locGql = await fetch(`${SHOPIFY_API}/graphql.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+        body: JSON.stringify({ query: `{ shop { primaryLocation { id name } } }` }),
+      })
+      const locGqlData = await locGql.json() as any
+      const primaryLoc = locGqlData?.data?.shop?.primaryLocation
+      if (primaryLoc?.id) {
+        activeLocationId = parseInt(primaryLoc.id.split('/').pop())
+        report.locations = [{ id: activeLocationId, name: primaryLoc.name }]
+        report.steps.push(`Found primary location: ${primaryLoc.name} (ID: ${activeLocationId})`)
+      }
+    } catch (e: any) {
+      report.steps.push(`Could not fetch location via GraphQL: ${e.message}`)
+    }
     await sleep(500)
 
-    // Step 2: Fetch ALL products via GraphQL (one call, no rate limit issues)
+    // Step 2: Fetch ALL products via GraphQL (one call)
     const gqlRes = await fetch(`${SHOPIFY_API}/graphql.json`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
@@ -2257,7 +2269,7 @@ app.get('/shopify/fix-fulfillment', async (c) => {
       const p = pe.node
       for (const ve of (p.variants?.edges ?? [])) {
         const v = ve.node
-        const gqlVariantId = v.id // gid://shopify/ProductVariant/xxx
+        const gqlVariantId = v.id
         const numericId = gqlVariantId?.split('/').pop()
 
         if (v.inventoryManagement === 'SHOPIFY') {
@@ -2265,7 +2277,6 @@ app.get('/shopify/fix-fulfillment', async (c) => {
           continue
         }
 
-        // Enable inventory management via REST
         try {
           await shopifyPatch(`/variants/${numericId}.json`, {
             variant: { id: parseInt(numericId), inventory_management: 'shopify', inventory_policy: 'deny' },
@@ -2274,12 +2285,11 @@ app.get('/shopify/fix-fulfillment', async (c) => {
           report.steps.push(`✅ ${p.title} / ${v.title}: inventory_management = shopify`)
           await sleep(500)
 
-          // Set inventory quantity at the active location
-          if (activeLocation && v.inventoryItem?.id) {
+          if (activeLocationId && v.inventoryItem?.id) {
             const invItemId = v.inventoryItem.id.split('/').pop()
             try {
               await shopifyPost('/inventory_levels/set.json', {
-                location_id: activeLocation.id, inventory_item_id: parseInt(invItemId), available: 999,
+                location_id: activeLocationId, inventory_item_id: parseInt(invItemId), available: 999,
               })
               report.inventorySetQty++
               report.steps.push(`📦 Set qty=999 for ${p.title} / ${v.title}`)
