@@ -1568,9 +1568,8 @@ export default function DriveKitStore() {
     else if (activeCategory === 'Top Rated') list = [...list].filter(p => p.inStock).sort((a, b) => { const aScore = a.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(a.variants) ? 50 : 0); const bScore = b.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(b.variants) ? 50 : 0); return bScore - aScore }).slice(0, 12)
     else if (activeCategory === 'New Arrivals') list = [...list].sort((a, b) => b.id - a.id).slice(0, 12)
     else if (activeCategory === 'Deals') list = list.filter((p) => {
-      const hasDiscount = getCompareAtPrice(p.variants) !== null && getCompareAtPrice(p.variants)! > p.minPrice
-      const hasBatchTag = p.tags.some((t) => /batch[- ]?[123]/i.test(t))
-      return hasDiscount && hasBatchTag
+      const compareAt = getCompareAtPrice(p.variants)
+      return compareAt !== null && compareAt > p.minPrice
     })
     else if (activeCategory) {
       const catLower = activeCategory.toLowerCase()
