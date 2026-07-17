@@ -14,56 +14,47 @@ SHOPIFY_STORE = os.environ.get("SHOPIFY_STORE", "dc5byu-fy")
 SHOPIFY_TOKEN = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
 API_BASE = f"https://{SHOPIFY_STORE}.myshopify.com/admin/api/2024-01"
 
-# Image-to-variant mapping based on visual analysis
+# Image-to-variant mapping — verified against CJ Dropshipping Products Connection video
 # Format: variant_id -> image_id
+#
+# Key distinction from CJ video:
+#   "Red" = SOLID red accent lines + "BAVISS" branding (image 27/34 in CJ)
+#   "Red A" = DASHED/BROKEN red border lines (image 29/34 in CJ)
+#
 VARIANT_IMAGE_MAP = {
-    # Red: Red accent lines on black mat (rectangular 4-in-1 form)
-    # pos_1: lifestyle shot in car with phone holder + keys
-    54343583924590: 65626385351022,   # Red / 1PC → pos 1
+    # ── Red: Solid red accent lines + "BAVISS" branding ──
+    # CJ image 27/34: rectangular mat, solid red border lines, "BAVISS" at top
+    54343583924590: 65606813712750,   # Red / 1PC → pos 4 (top-down BAVISS mat)
+    54343583957358: 65606814433646,   # Red / 2PCS → pos 26 (2pcs red mat top-down)
 
-    # Red / 2PCS: pos_26 shows the 2pcs red accent mat
-    54343583957358: 65606814433646,   # Red / 2PCS → pos 26
+    # ── White: White accent lines ──
+    54343583990126: 65606814597486,   # White / 1PC → pos 31 (white accent top-down)
+    54343584022894: 65606814237038,   # White / 2PCS → pos 20 (white 2pcs)
 
-    # White: White accent lines on black mat
-    # pos_31: clean top-down view of white variant
-    54343583990126: 65606814597486,   # White / 1PC → pos 31
+    # ── Black: All-black, no colored accents ──
+    # CJ image 22/34: marketing picture, all black mat
+    54343584055662: 65606813843822,   # Black / 1PC → pos 8 (all-black mat)
+    54343584350574: 65606813843822,   # Black / 2PCS → pos 8 (reuse, no 2pcs black img)
 
-    # White / 2PCS: pos_20 shows 2pcs white variant
-    54343584022894: 65606814237038,   # White / 2PCS → pos 20
+    # ── Red A: Dashed/broken red border lines (DIFFERENT from Red) ──
+    # CJ image 29/34: mat with dashed red border, parking numbers
+    54343584383342: 65606813745518,   # Red A / 1PC → pos 5 (dashed red border mat)
+    54343584416110: 65606813647214,   # Red A / 2PCS → pos 2 (dashed red mat collage)
 
-    # Black: All black, no colored accents
-    # pos_8: all-black mat in car
-    54343584055662: 65606813843822,   # Black / 1PC → pos 8
+    # ── Cartoon: Colorful cartoon animal characters ──
+    54343584448878: 65606814007662,   # Cartoon / 1PC → pos 13 (cartoon oval mat)
+    54343584481646: 65606814073198,   # Cartoon / 2PCS → pos 15 (cartoon 2pcs)
 
-    # Black / 2PCS: reuse the black product shot (no dedicated 2pcs black image)
-    54343584350574: 65606813843822,   # Black / 2PCS → pos 8
-
-    # Red A: Different red variant (angled product shot showing Aroma branding)
-    # pos_5: angled view with "Aroma" and "BAVISS" branding, red accent
-    54343584383342: 65606813745518,   # Red A / 1PC → pos 5
-
-    # Red A / 2PCS: red accent mat collage/lifestyle
-    # pos_2: collage showing red mat usage
-    54343584416110: 65606813647214,   # Red A / 2PCS → pos 2
-
-    # Cartoon: Cute animal characters (cat, duck, pig) on oval mat with red border
-    # pos_13: clear view of cartoon oval mat
-    54343584448878: 65606814007662,   # Cartoon / 1PC → pos 13
-
-    # Cartoon / 2PCS: same cartoon design, 2pcs label
-    # pos_15: cartoon 2pcs view
-    54343584481646: 65606814073198,   # Cartoon / 2PCS → pos 15
-
-    # Chinese Dream: Large rectangular mat with "中国梦 CHINESE DREAM" text
-    # pos_29: in-car shot showing Chinese Dream text clearly
+    # ── Chinese Dream: "中国梦 CHINESE DREAM" text in purple/red ──
+    # CJ image shows purple/red "中国梦" text on mat
     54343584514414: 65606814531950,   # Chinese dream / 1PC → pos 29
 
-    # Safe Journey: Large rectangular mat with "一路平安" text
-    # pos_30: in-car shot showing Safe Journey text
+    # ── Safe Journey: "一路平安" text in pink/red + purple gradient ──
+    # CJ image 31/34: rectangular mat with "一路平安" + purple gradient
     54343584579950: 65606814564718,   # Safe journey / 1PC → pos 30
 
-    # Single Bracket: Just the phone holder/bracket component, no mat
-    # pos_28: shows the bracket alone
+    # ── Single Bracket: Phone holder component only ──
+    # CJ image 32/34: black phone bracket with red accent rings
     54343584612718: 65606814499182,   # Single bracket / 1PC → pos 28
 }
 
