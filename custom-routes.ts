@@ -671,6 +671,8 @@ app.post('/shopify/update-variants', async (c) => {
     const text = await res.text()
     if (!res.ok) throw new Error(`REST GET ${res.status}: ${text.slice(0, 300)}`)
     const res = await fetch(`${SHOPIFY_API}${path}`, {
+  }
+
       method: 'PUT',
       headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
