@@ -1945,4 +1945,22 @@ app.get('/download/backup', async (c) => {
   })
 })
 
+// ── Auto-Seed Owner Account ───────────────────────────────────
+;(async () => {
+  try {
+    const email = 'owner@drivekit.com'
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (!existing) {
+      const user = await prisma.user.create({
+        data: { email, passwordHash: hashPassword('Drivekit2024'), name: 'Owner', role: 'OWNER' },
+      })
+      console.log(`[seed] ✅ Owner account created: ${email} (id: ${user.id})`)
+    } else {
+      console.log(`[seed] Owner account already exists: ${email}`)
+    }
+  } catch (err: any) {
+    console.error('[seed] Failed to seed owner account:', err.message)
+  }
+})()
+
 export default app
