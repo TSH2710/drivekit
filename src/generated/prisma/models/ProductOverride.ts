@@ -1242,6 +1242,7 @@ export type ProductOverrideCreateManyArgs<ExtArgs extends runtime.Types.Extensio
    * The data used to create many ProductOverrides.
    */
   data: Prisma.ProductOverrideCreateManyInput | Prisma.ProductOverrideCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -1260,6 +1261,7 @@ export type ProductOverrideCreateManyAndReturnArgs<ExtArgs extends runtime.Types
    * The data used to create many ProductOverrides.
    */
   data: Prisma.ProductOverrideCreateManyInput | Prisma.ProductOverrideCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**

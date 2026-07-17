@@ -960,6 +960,7 @@ export type SiteContentCreateManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * The data used to create many SiteContents.
    */
   data: Prisma.SiteContentCreateManyInput | Prisma.SiteContentCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**
@@ -978,6 +979,7 @@ export type SiteContentCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ext
    * The data used to create many SiteContents.
    */
   data: Prisma.SiteContentCreateManyInput | Prisma.SiteContentCreateManyInput[]
+  skipDuplicates?: boolean
 }
 
 /**

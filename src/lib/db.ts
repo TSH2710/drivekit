@@ -7,6 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function detectProvider(): string {
+  const url = process.env.DATABASE_URL ?? ''
+  if (url.startsWith('postgresql://') || url.startsWith('postgres://')) return 'postgresql'
   try {
     const fs = require('fs') as typeof import('fs')
     const path = require('path') as typeof import('path')
@@ -24,7 +26,7 @@ function createPrismaClient() {
 
   if (provider === 'postgresql') {
     const { PrismaPg } = require('@prisma/adapter-pg')
-    const adapter = new PrismaPg()
+    const adapter = new PrismaPg({ connectionString: url })
     return new PrismaClient({ adapter, log: logConfig })
   }
 
