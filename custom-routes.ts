@@ -789,6 +789,10 @@ app.post('/shopify/patch-variants', async (c) => {
       const patchBody: any = { id: parseInt(u.variantId) }
       if (u.price) patchBody.price = u.price
       if (u.imageId) patchBody.image_id = parseInt(u.imageId)
+      if (u.enableInventory) {
+        patchBody.inventory_management = 'shopify'
+        patchBody.inventory_policy = 'deny'
+      }
 
       const res = await fetch(`${SHOPIFY_API}/variants/${u.variantId}.json`, {
         method: 'PATCH',
