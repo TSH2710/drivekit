@@ -649,7 +649,7 @@ app.post('/shopify/create-variants', async (c) => {
   return c.json({ ok: true, results, totalUpdated: results.filter(r => r.status === 'created').length })
 })
 
-// ── Update Product Variants (full replace) ─────────────────────
+// ── Update Product Variants (full replace via REST API) ─────────
 // POST /shopify/update-variants — replaces all options and variants for a product
 
 app.post('/shopify/update-variants', async (c) => {
@@ -663,112 +663,95 @@ app.post('/shopify/update-variants', async (c) => {
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
-  const gql = async (query: string, variables: any = {}) => {
-    const res = await fetch(`${SHOPIFY_API}/graphql.json`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
-      body: JSON.stringify({ query, variables }),
+  const restPut = async (path: string, data: any) => {
+  const restGet = async (path: string) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      headers: { 'X-Shopify-Access-Token': token },
     })
-    const data = await res.json()
-    if (data.errors) {
-      console.error('[update-variants] GraphQL errors:', JSON.stringify(data.errors))
-      throw new Error(data.errors[0]?.message || 'GraphQL error')
-    }
-    return data.data
+    const text = await res.text()
+    if (!res.ok) throw new Error(`REST GET ${res.status}: ${text.slice(0, 300)}`)
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'PUT',
+      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const text = await res.text()
+    if (!res.ok) throw new Error(`REST ${res.status}: ${text.slice(0, 300)}`)
+    return JSON.parse(text)
   }
 
-  const gid = `gid://shopify/Product/${productId}`
+  const restPost = async (path: string, data: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'POST',
+      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const text = await res.text()
+    if (!res.ok) throw new Error(`REST ${res.status}: ${text.slice(0, 300)}`)
+    return JSON.parse(text)
+  }
+
+  const restDelete = async (path: string) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'DELETE',
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    if (!res.ok && res.status !== 404) throw new Error(`REST DELETE ${res.status}`)
+  }
+
   const steps: string[] = []
 
   try {
-    // Step 1: Fetch current state
-    const productData = await gql(`
-      query GetProduct($id: ID!) {
-        product(id: $id) {
-          id options { id name values }
-          variants(first: 100) { edges { node { id } } }
-        }
-      }
-    `, { id: gid })
-
+    // Step 1: Fetch current product
+    const productData = await restGet(`/products/${productId}.json`)
     const product = productData.product
     if (!product) return c.json({ error: 'Product not found' }, 404)
 
-    // Step 2: Delete all variants except one
-    const allVariantIds = product.variants.edges.map((e: any) => e.node.id)
-    if (allVariantIds.length > 1) {
-      await gql(`
-        mutation BulkDelete($productId: ID!, $variants: [ID!]!) {
-          productVariantsBulkDelete(productId: $productId, variants: $variants) {
-            product { id }
-            userErrors { field message }
-          }
-        }
-      `, { productId: gid, variants: allVariantIds.slice(1) })
-      steps.push(`deleted ${allVariantIds.length - 1} old variants`)
-    }
-
-    // Step 3: Remove existing options
-    for (const opt of product.options) {
+    // Step 2: Delete ALL existing variants (REST API: delete one by one)
+    for (const v of product.variants ?? []) {
       try {
-        await gql(`
-          mutation DeleteOption($productId: ID!, $optionId: ID!) {
-            productOptionDelete(productId: $productId, optionId: $optionId) {
-              deletedProductOptionId
-              userErrors { field message }
-            }
-          }
-        `, { productId: gid, optionId: opt.id })
-        steps.push(`removed option "${opt.name}"`)
+        await restDelete(`/products/${productId}/variants/${v.id}.json`)
+        steps.push(`deleted variant "${v.title}"`)
       } catch (e: any) {
-        steps.push(`skip option "${opt.name}": ${e.message}`)
+        steps.push(`skip delete variant: ${e.message}`)
       }
+      await new Promise(r => setTimeout(r, 200))
+    }
+
+    // Step 3: Update product with new options and first variant
+    // Shopify REST: PUT product with options and variants creates them
+    const firstVariant = variants[0]
+    const productUpdate: any = {
+      id: parseInt(productId),
+      options: options.map(o => ({ name: o.name, values: o.values })),
+      variants: [{
+        option1: firstVariant.optionValues[options[0]?.name ?? 'Color'] ?? firstVariant.optionValues[Object.keys(firstVariant.optionValues)[0]],
+        option2: options.length > 1 ? (firstVariant.optionValues[options[1]?.name ?? 'Quantity'] ?? firstVariant.optionValues[Object.keys(firstVariant.optionValues)[1]]) : undefined,
+        price: firstVariant.price,
+        sku: firstVariant.sku,
+        inventory_policy: 'deny',
+      }],
+    }
+    await restPut(`/products/${productId}.json`, { product: productUpdate })
+    steps.push(`updated product options: ${options.map(o => o.name).join(' + ')}`)
+
+    // Step 4: Create remaining variants
+    for (let i = 1; i < variants.length; i++) {
+      const v = variants[i]
+      const variantData: any = {
+        product_id: parseInt(productId),
+        price: v.price,
+        sku: v.sku,
+        inventory_policy: 'deny',
+        option1: v.optionValues[options[0]?.name ?? 'Color'] ?? v.optionValues[Object.keys(v.optionValues)[0]],
+        option2: options.length > 1 ? (v.optionValues[options[1]?.name ?? 'Quantity'] ?? v.optionValues[Object.keys(v.optionValues)[1]]) : undefined,
+      }
+      await restPost(`/products/${productId}/variants.json`, { variant: variantData })
+      steps.push(`created variant: ${Object.values(v.optionValues).join(' / ')} - $${v.price}`)
       await new Promise(r => setTimeout(r, 300))
     }
 
-    // Step 4: Add new options
-    for (const opt of options) {
-      await gql(`
-        mutation AddOption($productId: ID!, $option: ProductOptionInput!) {
-          productOptionCreate(productId: $productId, option: $option) {
-            product { id options { name values } }
-            userErrors { field message }
-          }
-        }
-      `, {
-        productId: gid,
-        option: { name: opt.name, values: opt.values.map(v => ({ name: v })) },
-      })
-      steps.push(`added option "${opt.name}" with ${opt.values.length} values`)
-      await new Promise(r => setTimeout(r, 300))
-    }
-
-    // Step 5: Bulk create variants
-    const bulkVariants = variants.map(v => ({
-      optionValues: Object.entries(v.optionValues).map(([name, value]) => ({ optionName: name, name: value })),
-      price: v.price,
-      sku: v.sku,
-      inventoryPolicy: 'DENY',
-    }))
-
-    // Split into batches of 50 (Shopify limit)
-    for (let i = 0; i < bulkVariants.length; i += 50) {
-      const batch = bulkVariants.slice(i, i + 50)
-      const createRes = await gql(`
-        mutation BulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-          productVariantsBulkCreate(productId: $productId, variants: $variants) {
-            productVariants { id title sku price }
-            userErrors { field message }
-          }
-        }
-      `, { productId: gid, variants: batch })
-
-      const errors = createRes.productVariantsBulkCreate?.userErrors || []
-      if (errors.length > 0) throw new Error(`Variant creation error: ${errors[0].message}`)
-      steps.push(`created ${batch.length} variants`)
-    }
-
-    // Step 6: Refresh cache
+    // Step 5: Refresh cache
     try {
       const rawProducts = await fetchAllShopifyProducts()
       const products = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
