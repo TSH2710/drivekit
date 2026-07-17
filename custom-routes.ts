@@ -11,7 +11,7 @@
 
 import { Hono } from 'hono'
 import { prisma } from './src/lib/db'
-import { randomBytes } from 'crypto'
+import { randomBytes, createHmac } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -647,6 +647,82 @@ app.post('/shopify/create-variants', async (c) => {
   }
 
   return c.json({ ok: true, results, totalUpdated: results.filter(r => r.status === 'created').length })
+})
+
+// ── Manual Token Injection (fallback when OAuth fails) ─────────
+// POST /shopify/set-token — accepts a Shopify access token and saves it
+app.post('/shopify/set-token', async (c) => {
+  const body = await c.req.json<{ token?: string }>()
+  const token = body.token?.trim()
+  if (!token) return c.json({ error: 'Missing "token" parameter' }, 400)
+
+  const valid = await validateCurrentToken(token)
+  if (!valid) return c.json({ error: 'Token is invalid — Shopify rejected it' }, 400)
+
+  writeTokenCache({ accessToken: token, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, scope: 'manual-injection' })
+  lastHealthResult = { ok: true, checkedAt: new Date().toISOString(), source: 'manual', message: 'Shopify token set manually and validated' }
+  lastHealthCheck = Date.now()
+
+  return c.json({ ok: true, message: 'Token saved and validated!' })
+})
+
+// ── Create Discount Code ────────────────────────────────────────
+// POST /shopify/create-discount — creates a Shopify discount code
+app.post('/shopify/create-discount', async (c) => {
+  const body = await c.req.json<{ code?: string; discountType?: string; value?: string; usageLimit?: number | null; oncePerCustomer?: boolean }>()
+  const code = body.code?.trim()
+  if (!code) return c.json({ error: 'Missing "code" parameter' }, 400)
+
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const discountType = body.discountType || 'percentage'
+  const value = body.value || '-100'
+
+  try {
+    // Step 1: Create price rule
+    const priceRuleRes = await fetch(`${SHOPIFY_API}/price_rules.json`, {
+      method: 'POST',
+      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        price_rule: {
+          title: `${code} - ${discountType === 'percentage' ? Math.abs(parseFloat(value)) + '% Off' : '$' + Math.abs(parseFloat(value)) + ' Off'}`,
+          target_type: 'line_item',
+          target_selection: 'all',
+          allocation_method: 'across',
+          value_type: discountType === 'percentage' ? 'percentage' : 'fixed_amount',
+          value: discountType === 'percentage' ? `-${Math.abs(parseFloat(value))}` : `-${Math.abs(parseFloat(value))}`,
+          starts_at: new Date().toISOString(),
+          usage_limit: body.usageLimit ?? null,
+          once_per_customer: body.oncePerCustomer ?? false,
+        }
+      })
+    })
+
+    const priceRuleData = await priceRuleRes.json() as any
+    if (!priceRuleRes.ok) return c.json({ error: `Price rule creation failed: ${JSON.stringify(priceRuleData)}` }, 502)
+
+    const priceRuleId = priceRuleData.price_rule.id
+
+    // Step 2: Create discount code
+    const discountCodeRes = await fetch(`${SHOPIFY_API}/price_rules/${priceRuleId}/discount_codes.json`, {
+      method: 'POST',
+      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discount_code: { code } })
+    })
+
+    const discountCodeData = await discountCodeRes.json() as any
+    if (!discountCodeRes.ok) return c.json({ error: `Discount code creation failed: ${JSON.stringify(discountCodeData)}` }, 502)
+
+    return c.json({
+      ok: true, code, discountType, value,
+      priceRuleId: `gid://shopify/PriceRule/${priceRuleId}`,
+      discountCodeId: `gid://shopify/DiscountCode/${discountCodeData.discount_code.id}`,
+      message: `Discount code "${code}" created successfully!`,
+    })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Failed to create discount' }, 500)
+  }
 })
 
 // ── Auto-Reauth ───────────────────────────────────────────────
