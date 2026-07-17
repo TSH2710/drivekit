@@ -768,7 +768,7 @@ app.post('/shopify/update-variants', async (c) => {
   }
 })
 
-// ── Update Variant Prices & Images (PATCH, no delete) ─────────
+// ── Update Variant Prices & Images (PATCH, no delete) ──────────
 // POST /shopify/patch-variants — updates price and image_id on existing variants
 
 app.post('/shopify/patch-variants', async (c) => {
