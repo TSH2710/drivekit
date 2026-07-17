@@ -649,6 +649,139 @@ app.post('/shopify/create-variants', async (c) => {
   return c.json({ ok: true, results, totalUpdated: results.filter(r => r.status === 'created').length })
 })
 
+// ── Update Product Variants (full replace) ─────────────────────
+// POST /shopify/update-variants — replaces all options and variants for a product
+
+app.post('/shopify/update-variants', async (c) => {
+  const body = await c.req.json<{ productId?: string; options?: Array<{ name: string; values: string[] }>; variants?: Array<{ optionValues: Record<string, string>; price: string; sku: string }> }>()
+  const { productId, options, variants } = body
+
+  if (!productId || !options?.length || !variants?.length) {
+    return c.json({ error: 'Missing productId, options, or variants' }, 400)
+  }
+
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const gql = async (query: string, variables: any = {}) => {
+    const res = await fetch(`${SHOPIFY_API}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+      body: JSON.stringify({ query, variables }),
+    })
+    const data = await res.json()
+    if (data.errors) {
+      console.error('[update-variants] GraphQL errors:', JSON.stringify(data.errors))
+      throw new Error(data.errors[0]?.message || 'GraphQL error')
+    }
+    return data.data
+  }
+
+  const gid = `gid://shopify/Product/${productId}`
+  const steps: string[] = []
+
+  try {
+    // Step 1: Fetch current state
+    const productData = await gql(`
+      query GetProduct($id: ID!) {
+        product(id: $id) {
+          id options { id name values }
+          variants(first: 100) { edges { node { id } } }
+        }
+      }
+    `, { id: gid })
+
+    const product = productData.product
+    if (!product) return c.json({ error: 'Product not found' }, 404)
+
+    // Step 2: Delete all variants except one
+    const allVariantIds = product.variants.edges.map((e: any) => e.node.id)
+    if (allVariantIds.length > 1) {
+      await gql(`
+        mutation BulkDelete($productId: ID!, $variants: [ID!]!) {
+          productVariantsBulkDelete(productId: $productId, variants: $variants) {
+            product { id }
+            userErrors { field message }
+          }
+        }
+      `, { productId: gid, variants: allVariantIds.slice(1) })
+      steps.push(`deleted ${allVariantIds.length - 1} old variants`)
+    }
+
+    // Step 3: Remove existing options
+    for (const opt of product.options) {
+      try {
+        await gql(`
+          mutation DeleteOption($productId: ID!, $optionId: ID!) {
+            productOptionDelete(productId: $productId, optionId: $optionId) {
+              deletedProductOptionId
+              userErrors { field message }
+            }
+          }
+        `, { productId: gid, optionId: opt.id })
+        steps.push(`removed option "${opt.name}"`)
+      } catch (e: any) {
+        steps.push(`skip option "${opt.name}": ${e.message}`)
+      }
+      await new Promise(r => setTimeout(r, 300))
+    }
+
+    // Step 4: Add new options
+    for (const opt of options) {
+      await gql(`
+        mutation AddOption($productId: ID!, $option: ProductOptionInput!) {
+          productOptionCreate(productId: $productId, option: $option) {
+            product { id options { name values } }
+            userErrors { field message }
+          }
+        }
+      `, {
+        productId: gid,
+        option: { name: opt.name, values: opt.values.map(v => ({ name: v })) },
+      })
+      steps.push(`added option "${opt.name}" with ${opt.values.length} values`)
+      await new Promise(r => setTimeout(r, 300))
+    }
+
+    // Step 5: Bulk create variants
+    const bulkVariants = variants.map(v => ({
+      optionValues: Object.entries(v.optionValues).map(([name, value]) => ({ optionName: name, name: value })),
+      price: v.price,
+      sku: v.sku,
+      inventoryPolicy: 'DENY',
+    }))
+
+    // Split into batches of 50 (Shopify limit)
+    for (let i = 0; i < bulkVariants.length; i += 50) {
+      const batch = bulkVariants.slice(i, i + 50)
+      const createRes = await gql(`
+        mutation BulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+          productVariantsBulkCreate(productId: $productId, variants: $variants) {
+            productVariants { id title sku price }
+            userErrors { field message }
+          }
+        }
+      `, { productId: gid, variants: batch })
+
+      const errors = createRes.productVariantsBulkCreate?.userErrors || []
+      if (errors.length > 0) throw new Error(`Variant creation error: ${errors[0].message}`)
+      steps.push(`created ${batch.length} variants`)
+    }
+
+    // Step 6: Refresh cache
+    try {
+      const rawProducts = await fetchAllShopifyProducts()
+      const products = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+      writeCache(products)
+      steps.push('cache refreshed')
+    } catch { steps.push('cache refresh skipped') }
+
+    return c.json({ ok: true, steps, totalVariants: variants.length })
+  } catch (err: any) {
+    return c.json({ error: err.message, steps }, 500)
+  }
+})
+
 // ── Manual Token Injection (fallback when OAuth fails) ─────────
 // POST /shopify/set-token — accepts a Shopify access token and saves it
 app.post('/shopify/set-token', async (c) => {
