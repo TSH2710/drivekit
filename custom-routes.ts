@@ -768,6 +768,51 @@ app.post('/shopify/update-variants', async (c) => {
   }
 })
 
+// ── Update Variant Prices & Images (PATCH, no delete) ─────────
+// POST /shopify/patch-variants — updates price and image_id on existing variants
+
+app.post('/shopify/patch-variants', async (c) => {
+  const body = await c.req.json<{ updates?: Array<{ variantId: string; price?: string; imageId?: string }> }>()
+  const { updates } = body
+
+  if (!updates?.length) return c.json({ error: 'Missing updates array' }, 400)
+
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const results: string[] = []
+  let success = 0
+  let failed = 0
+
+  for (const u of updates) {
+    try {
+      const patchBody: any = { id: parseInt(u.variantId) }
+      if (u.price) patchBody.price = u.price
+      if (u.imageId) patchBody.image_id = parseInt(u.imageId)
+
+      const res = await fetch(`${SHOPIFY_API}/variants/${u.variantId}.json`, {
+        method: 'PATCH',
+        headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variant: patchBody }),
+      })
+      const text = await res.text()
+      if (res.ok) {
+        success++
+        results.push(`✅ variant ${u.variantId}: price=${u.price ?? 'unchanged'} image=${u.imageId ?? 'unchanged'}`)
+      } else {
+        failed++
+        results.push(`❌ variant ${u.variantId}: ${res.status} ${text.slice(0, 100)}`)
+      }
+    } catch (err: any) {
+      failed++
+      results.push(`❌ variant ${u.variantId}: ${err.message}`)
+    }
+    await new Promise(r => setTimeout(r, 300))
+  }
+
+  return c.json({ ok: true, success, failed, results })
+})
+
 // ── Manual Token Injection (fallback when OAuth fails) ─────────
 // POST /shopify/set-token — accepts a Shopify access token and saves it
 app.post('/shopify/set-token', async (c) => {
