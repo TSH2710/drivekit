@@ -663,22 +663,23 @@ app.post('/shopify/update-variants', async (c) => {
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
-  const restPut = async (path: string, data: any) => {
   const restGet = async (path: string) => {
     const res = await fetch(`${SHOPIFY_API}${path}`, {
       headers: { 'X-Shopify-Access-Token': token },
     })
     const text = await res.text()
     if (!res.ok) throw new Error(`REST GET ${res.status}: ${text.slice(0, 300)}`)
-    const res = await fetch(`${SHOPIFY_API}${path}`, {
+    return JSON.parse(text)
   }
 
+  const restPut = async (path: string, data: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
       method: 'PUT',
       headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
     const text = await res.text()
-    if (!res.ok) throw new Error(`REST ${res.status}: ${text.slice(0, 300)}`)
+    if (!res.ok) throw new Error(`REST PUT ${res.status}: ${text.slice(0, 300)}`)
     return JSON.parse(text)
   }
 
