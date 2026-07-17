@@ -1449,6 +1449,7 @@ export default function DriveKitStore() {
   }
 
   const PROMO_CODES: Record<string, { discount: number; label: string }> = {
+    OWNER: { discount: 1.0, label: '100% off — Free order' },
     DRIVE20: { discount: 0.20, label: '20% off' },
     WELCOME10: { discount: 0.10, label: '10% off' },
     VIP15: { discount: 0.15, label: '15% off' },
