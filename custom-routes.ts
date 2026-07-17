@@ -2196,80 +2196,130 @@ app.get('/shopify/fix-fulfillment', async (c) => {
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
-  const report: any = { steps: [], variants: [], orders: [], locations: [] }
+  const report: any = { steps: [], orders: [], locations: [], inventoryFixed: 0, inventoryAlreadyOk: 0, inventorySetQty: 0 }
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+  const shopifyGet = async (path: string) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, { headers: { 'X-Shopify-Access-Token': token } })
+    const text = await res.text()
+    if (res.status === 429) { report.steps.push(`Rate limited on ${path} — pausing 3s`); await sleep(3000); return shopifyGet(path) }
+    if (!res.ok) throw new Error(`Shopify API ${res.status}: ${text.slice(0, 200)}`)
+    return JSON.parse(text)
+  }
+
+  const shopifyPatch = async (path: string, body: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'PATCH', headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const text = await res.text()
+    if (res.status === 429) { report.steps.push(`Rate limited on PATCH ${path} — pausing 3s`); await sleep(3000); return shopifyPatch(path, body) }
+    if (!res.ok) throw new Error(`Shopify PATCH ${res.status}: ${text.slice(0, 200)}`)
+    return JSON.parse(text)
+  }
+
+  const shopifyPost = async (path: string, body: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'POST', headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const text = await res.text()
+    if (res.status === 429) { report.steps.push(`Rate limited on POST ${path} — pausing 3s`); await sleep(3000); return shopifyPost(path, body) }
+    if (!res.ok) throw new Error(`Shopify POST ${res.status}: ${text.slice(0, 200)}`)
+    return JSON.parse(text)
+  }
 
   try {
     // Step 1: Get shop locations
-    const locRes = await fetch(`${SHOPIFY_API}/locations.json`, {
-      headers: { 'X-Shopify-Access-Token': token },
-    })
-    const locData = await locRes.json() as any
+    const locData = await shopifyGet('/locations.json')
     const locations = locData.locations ?? []
     report.locations = locations.map((l: any) => ({ id: l.id, name: l.name, active: l.active }))
     report.steps.push(`Found ${locations.length} locations`)
     const activeLocation = locations.find((l: any) => l.active) ?? locations[0]
+    await sleep(500)
 
-    // Step 2: Fetch ALL products and enable inventory on every variant
-    const rawProducts = await fetchAllShopifyProducts()
-    const active = rawProducts.filter((p: any) => p.status === 'active')
+    // Step 2: Fetch ALL products via GraphQL (one call, no rate limit issues)
+    const gqlRes = await fetch(`${SHOPIFY_API}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+      body: JSON.stringify({
+        query: `{ products(first: 250) { edges { node { id title handle variants(first: 100) { edges { node { id title inventoryManagement inventoryItem { id } } } } } } }`,
+      }),
+    })
+    const gqlData = await gqlRes.json() as any
+    await sleep(500)
+
+    const productEdges = gqlData?.data?.products?.edges ?? []
     let inventoryFixed = 0
     let inventoryAlreadyOk = 0
 
-    for (const p of active) {
-      const pp = p as any
-      const variants = pp.variants ?? []
-      for (const v of variants) {
-        if (v.inventory_management === 'shopify') {
+    for (const pe of productEdges) {
+      const p = pe.node
+      for (const ve of (p.variants?.edges ?? [])) {
+        const v = ve.node
+        const gqlVariantId = v.id // gid://shopify/ProductVariant/xxx
+        const numericId = gqlVariantId?.split('/').pop()
+
+        if (v.inventoryManagement === 'SHOPIFY') {
           inventoryAlreadyOk++
           continue
         }
+
+        // Enable inventory management via REST
         try {
-          const patchRes = await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
-            method: 'PATCH',
-            headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ variant: { id: v.id, inventory_management: 'shopify', inventory_policy: 'deny' } }),
+          await shopifyPatch(`/variants/${numericId}.json`, {
+            variant: { id: parseInt(numericId), inventory_management: 'shopify', inventory_policy: 'deny' },
           })
-          if (patchRes.ok) {
-            inventoryFixed++
-            // If we have a location, set inventory level to 999
-            if (activeLocation) {
-              const invItemRes = await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
-                headers: { 'X-Shopify-Access-Token': token },
+          inventoryFixed++
+          report.steps.push(`✅ ${p.title} / ${v.title}: inventory_management = shopify`)
+          await sleep(500)
+
+          // Set inventory quantity at the active location
+          if (activeLocation && v.inventoryItem?.id) {
+            const invItemId = v.inventoryItem.id.split('/').pop()
+            try {
+              await shopifyPost('/inventory_levels/set.json', {
+                location_id: activeLocation.id, inventory_item_id: parseInt(invItemId), available: 999,
               })
-              const invItemData = await invItemRes.json() as any
-              const inventoryItemId = invItemData?.variant?.inventory_item_id
-              if (inventoryItemId) {
-                await fetch(`${SHOPIFY_API}/inventory_levels/set.json`, {
-                  method: 'POST',
-                  headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ location_id: activeLocation.id, inventory_item_id: inventoryItemId, available: 999 }),
-                })
-              }
+              report.inventorySetQty++
+              report.steps.push(`📦 Set qty=999 for ${p.title} / ${v.title}`)
+              await sleep(500)
+            } catch (e: any) {
+              report.steps.push(`⚠️ Could not set qty for ${v.title}: ${e.message}`)
             }
           }
-        } catch {}
-        await new Promise(r => setTimeout(r, 150))
+        } catch (e: any) {
+          report.steps.push(`❌ ${p.title} / ${v.title}: ${e.message}`)
+        }
+        await sleep(500)
       }
     }
-    report.steps.push(`Inventory enabled: ${inventoryFixed} variants fixed, ${inventoryAlreadyOk} already ok`)
+    report.inventoryFixed = inventoryFixed
+    report.inventoryAlreadyOk = inventoryAlreadyOk
+    report.steps.push(`Done: ${inventoryFixed} fixed, ${inventoryAlreadyOk} already ok, ${report.inventorySetQty} qty set`)
 
-    // Step 3: Fetch recent orders
-    const ordersRes = await fetch(`${SHOPIFY_API}/orders.json?limit=5&status=any`, {
-      headers: { 'X-Shopify-Access-Token': token },
+    // Step 3: Fetch recent orders via GraphQL
+    const ordersGql = await fetch(`${SHOPIFY_API}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+      body: JSON.stringify({
+        query: `{ orders(first: 5, sortKey: CREATED_AT, reverse: true) { edges { node { id name email financialStatus fulfillmentStatus totalPriceSet { shopMoney { amount currencyCode } } lineItems(first: 10) { edges { node { title variantTitle variant { id inventoryItem { id } } quantity fulfillableQuantity requiresShipping } } } } } }`,
+      }),
     })
-    const ordersData = await ordersRes.json() as any
-    for (const o of (ordersData.orders ?? [])) {
-      const orderInfo: any = {
-        id: o.id, order_number: o.order_number, name: o.name,
-        financial_status: o.financial_status, fulfillment_status: o.fulfillment_status,
-        total_price: o.total_price, created_at: o.created_at,
-        line_items: (o.line_items ?? []).map((li: any) => ({
-          id: li.id, title: li.title, variant_title: li.variant_title,
-          variant_id: li.variant_id, quantity: li.quantity, fulfillable_quantity: li.fulfillable_quantity,
-          requires_shipping: li.requires_shipping,
+    const ordersGqlData = await ordersGql.json() as any
+    for (const oe of (ordersGqlData?.data?.orders?.edges ?? [])) {
+      const o = oe.node
+      report.orders.push({
+        name: o.name, email: o.email,
+        financial_status: o.financialStatus, fulfillment_status: o.fulfillmentStatus,
+        total_price: o.totalPriceSet?.shopMoney?.amount,
+        line_items: (o.lineItems?.edges ?? []).map((lie: any) => ({
+          title: lie.node.title, variant_title: lie.node.variantTitle,
+          quantity: lie.node.quantity, fulfillable_quantity: lie.node.fulfillableQuantity,
+          requires_shipping: lie.node.requiresShipping,
+          has_inventory_item: !!lie.node.variant?.inventoryItem?.id,
         })),
-      }
-      report.orders.push(orderInfo)
+      })
     }
     report.steps.push(`Found ${report.orders.length} recent orders`)
 
