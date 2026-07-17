@@ -2189,6 +2189,97 @@ app.get('/download/backup', async (c) => {
   })
 })
 
+// ── Fix Fulfillment (enable inventory + set location qty) ─────
+// GET /shopify/fix-fulfillment — diagnoses and fixes grayed-out Fulfill button
+
+app.get('/shopify/fix-fulfillment', async (c) => {
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const report: any = { steps: [], variants: [], orders: [], locations: [] }
+
+  try {
+    // Step 1: Get shop locations
+    const locRes = await fetch(`${SHOPIFY_API}/locations.json`, {
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    const locData = await locRes.json() as any
+    const locations = locData.locations ?? []
+    report.locations = locations.map((l: any) => ({ id: l.id, name: l.name, active: l.active }))
+    report.steps.push(`Found ${locations.length} locations`)
+    const activeLocation = locations.find((l: any) => l.active) ?? locations[0]
+
+    // Step 2: Fetch ALL products and enable inventory on every variant
+    const rawProducts = await fetchAllShopifyProducts()
+    const active = rawProducts.filter((p: any) => p.status === 'active')
+    let inventoryFixed = 0
+    let inventoryAlreadyOk = 0
+
+    for (const p of active) {
+      const pp = p as any
+      const variants = pp.variants ?? []
+      for (const v of variants) {
+        if (v.inventory_management === 'shopify') {
+          inventoryAlreadyOk++
+          continue
+        }
+        try {
+          const patchRes = await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
+            method: 'PATCH',
+            headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ variant: { id: v.id, inventory_management: 'shopify', inventory_policy: 'deny' } }),
+          })
+          if (patchRes.ok) {
+            inventoryFixed++
+            // If we have a location, set inventory level to 999
+            if (activeLocation) {
+              const invItemRes = await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
+                headers: { 'X-Shopify-Access-Token': token },
+              })
+              const invItemData = await invItemRes.json() as any
+              const inventoryItemId = invItemData?.variant?.inventory_item_id
+              if (inventoryItemId) {
+                await fetch(`${SHOPIFY_API}/inventory_levels/set.json`, {
+                  method: 'POST',
+                  headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ location_id: activeLocation.id, inventory_item_id: inventoryItemId, available: 999 }),
+                })
+              }
+            }
+          }
+        } catch {}
+        await new Promise(r => setTimeout(r, 150))
+      }
+    }
+    report.steps.push(`Inventory enabled: ${inventoryFixed} variants fixed, ${inventoryAlreadyOk} already ok`)
+
+    // Step 3: Fetch recent orders
+    const ordersRes = await fetch(`${SHOPIFY_API}/orders.json?limit=5&status=any`, {
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    const ordersData = await ordersRes.json() as any
+    for (const o of (ordersData.orders ?? [])) {
+      const orderInfo: any = {
+        id: o.id, order_number: o.order_number, name: o.name,
+        financial_status: o.financial_status, fulfillment_status: o.fulfillment_status,
+        total_price: o.total_price, created_at: o.created_at,
+        line_items: (o.line_items ?? []).map((li: any) => ({
+          id: li.id, title: li.title, variant_title: li.variant_title,
+          variant_id: li.variant_id, quantity: li.quantity, fulfillable_quantity: li.fulfillable_quantity,
+          requires_shipping: li.requires_shipping,
+        })),
+      }
+      report.orders.push(orderInfo)
+    }
+    report.steps.push(`Found ${report.orders.length} recent orders`)
+
+    return c.json({ ok: true, report })
+  } catch (err: any) {
+    report.steps.push(`Error: ${err.message}`)
+    return c.json({ ok: false, report, error: err.message }, 500)
+  }
+})
+
 // ── Auto-Seed Owner Account ───────────────────────────────────
 ;(async () => {
   try {
