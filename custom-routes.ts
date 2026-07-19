@@ -2381,14 +2381,15 @@ app.get('/shopify/fix-fulfillment', async (c) => {
 app.get('/shopify/retag-batches', async (c) => {
   try {
     const page = parseInt(c.req.query('page') || '1', 10)
-    const BATCH_SIZE = parseInt(c.req.query('batchSize') || '10', 10)
+    const PAGE_SIZE = parseInt(c.req.query('batchSize') || '5', 10)
+    const BATCH_SIZE = 20
     const BATCH_TAG_RE = /^batch[- ]?\d+$/i
 
     const cached = readCache()
     const products = cached?.products ?? []
-    const totalPages = Math.ceil(products.length / BATCH_SIZE)
-    const startIdx = (page - 1) * BATCH_SIZE
-    const endIdx = Math.min(startIdx + BATCH_SIZE, products.length)
+    const totalPages = Math.ceil(products.length / PAGE_SIZE)
+    const startIdx = (page - 1) * PAGE_SIZE
+    const endIdx = Math.min(startIdx + PAGE_SIZE, products.length)
     const slice = products.slice(startIdx, endIdx)
 
     const results: Array<{ title: string; newTags: string }> = []
