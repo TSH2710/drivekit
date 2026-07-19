@@ -919,7 +919,32 @@ app.get('/shopify/reauthorize', async (c) => {
 
 // ── Background Health Check (runs on server start) ────────────
 ;(async () => {
-  const envToken = process.env.SHOPIFY_ACCESS_TOKEN || ''
+  // Try env token first, then file cache, then DB
+  let envToken = process.env.SHOPIFY_ACCESS_TOKEN || ''
+  if (!envToken) {
+    const cached = readTokenCache()
+    if (cached?.accessToken) envToken = cached.accessToken
+  }
+
+  // Last resort: try DB
+  if (!envToken) {
+    try {
+      const { PrismaClient } = require('./src/generated/prisma') as typeof import('./src/generated/prisma')
+      const p = new PrismaClient()
+      const record = await p.siteContent.findUnique({ where: { key: 'shopify-token-cache' } })
+      if (record) {
+        const data = JSON.parse(record.value)
+        if (data.accessToken) {
+          envToken = data.accessToken
+          console.log('[shopify-health] Token restored from database')
+          // Also restore file cache
+          writeTokenCache(data)
+        }
+      }
+      await p.$disconnect()
+    } catch {}
+  }
+
   if (!envToken) {
     console.log('[shopify-health] No token configured — skipping initial check')
     return
