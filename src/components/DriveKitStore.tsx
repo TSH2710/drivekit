@@ -1276,6 +1276,8 @@ export default function DriveKitStore() {
   const [checkoutState, setCheckoutState] = useState('')
   const [checkoutZip, setCheckoutZip] = useState('')
   const [checkoutPhone, setCheckoutPhone] = useState('')
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutError, setCheckoutError] = useState('')
   const [waitlistEmail, setWaitlistEmail] = useState('')
   const [waitlistSubmitted, setWaitlistSubmitted] = useState<Record<string, boolean>>({})
   const [waitlistCounts, setWaitlistCounts] = useState<Record<string, number>>({})
@@ -2232,70 +2234,105 @@ export default function DriveKitStore() {
                   </div>
                   <button
                     onClick={async () => {
-                      const orderItems = cartItems
-                        .filter((item) => item.variantId)
-                        .map((item) => ({
+                      if (checkoutLoading) return
+                      if (!checkoutFirstName.trim() || !checkoutLastName.trim() || !checkoutEmail.trim() || !checkoutAddress.trim() || !checkoutCity.trim() || !checkoutState.trim() || !checkoutZip.trim()) {
+                        setCheckoutError('Please fill in all required shipping fields.')
+                        return
+                      }
+                      setCheckoutError('')
+                      setCheckoutLoading(true)
+                      try {
+                        const orderItems = cartItems.map((item) => ({
                           productId: String(item.product.id),
-                          variantId: String(item.variantId),
+                          variantId: item.variantId ? String(item.variantId) : null,
                           title: item.product.title,
-                          variantTitle: item.product.variants.find((v) => v.id === item.variantId)?.title,
+                          variantTitle: item.product.variants.find((v) => v.id === item.variantId)?.title ?? null,
                           quantity: item.quantity,
                           price: item.variantPrice ?? item.product.minPrice,
                         }))
-                      if (orderItems.length === 0) {
-                        alert('Some items are missing variant information. Please remove and re-add them.')
-                        return
-                      }
-                      const shipping = {
-                        name: `${checkoutFirstName} ${checkoutLastName}`.trim(),
-                        address1: checkoutAddress,
-                        city: checkoutCity,
-                        state: checkoutState,
-                        zip: checkoutZip,
-                        country: 'US',
-                        phone: checkoutPhone || undefined,
-                      }
-                      const orderEmail = checkoutEmail || currentUser?.email || ''
-                      if (!orderEmail) {
-                        alert('Please enter your email address.')
-                        return
-                      }
-                      let placedOrderNumber: string | null = null
-                      try {
-                        const res = await fetch('/api/orders/place', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
-                          body: JSON.stringify({
-                            email: orderEmail,
-                            items: orderItems,
-                            shipping,
-                            promoCode: appliedPromo?.code,
-                            discount: discountAmount,
-                            total: orderTotal,
-                          }),
-                        })
-                        const orderData = await res.json()
-                        placedOrderNumber = orderData?.order?.orderNumber ?? orderData?.orderNumber ?? null
-                      } catch {}
-                      const cart = cartItems
-                        .filter((item) => item.variantId)
-                        .map((item) => ({ variantId: item.variantId!, quantity: item.quantity }))
-                      const promoParam = appliedPromo ? `&promo=${encodeURIComponent(appliedPromo.code)}` : ''
-                      try {
-                        const res = await fetch(`/api/shopify/checkout?cart=${encodeURIComponent(JSON.stringify(cart))}${promoParam}`)
-                        const body = await res.json()
-                        if (body.url) {
-                          window.location.href = body.url
-                          return
+                        const shipping = {
+                          name: `${checkoutFirstName} ${checkoutLastName}`.trim(),
+                          address1: checkoutAddress,
+                          city: checkoutCity,
+                          state: checkoutState,
+                          zip: checkoutZip,
+                          country: 'US',
+                          phone: checkoutPhone || undefined,
                         }
-                      } catch {}
-                      setLastOrderNumber(placedOrderNumber)
-                      setCurrentView('order-confirmation')
+                        const orderEmail = checkoutEmail.trim()
+                        let placedOrderNumber: string | null = null
+                        try {
+                          const res = await fetch('/api/orders/place', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+                            body: JSON.stringify({
+                              email: orderEmail,
+                              items: orderItems,
+                              shipping,
+                              promoCode: appliedPromo?.code,
+                              discount: discountAmount,
+                              total: orderTotal,
+                            }),
+                          })
+                          const orderData = await res.json()
+                          placedOrderNumber = orderData?.order?.orderNumber ?? orderData?.orderNumber ?? null
+                        } catch {}
+                        const cart = cartItems
+                          .filter((item) => item.variantId)
+                          .map((item) => ({ variantId: item.variantId!, quantity: item.quantity }))
+                        if (cart.length > 0) {
+                          const promoParam = appliedPromo ? `&promo=${encodeURIComponent(appliedPromo.code)}` : ''
+                          try {
+                            const res = await fetch(`/api/shopify/checkout?cart=${encodeURIComponent(JSON.stringify(cart))}${promoParam}`)
+                            const body = await res.json()
+                            if (body.url) {
+                              const width = 700, height = 700
+                              const left = (window.screen.width - width) / 2, top = (window.screen.height - height) / 2
+                              const popup = window.open(body.url, 'drivekit_checkout', `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`)
+                              if (popup) {
+                                const checkPopup = setInterval(() => {
+                                  if (popup.closed) {
+                                    clearInterval(checkPopup)
+                                    setLastOrderNumber(placedOrderNumber)
+                                    setCartItems([])
+                                    setAppliedPromo(null)
+                                    setPromoInput('')
+                                    setCheckoutLoading(false)
+                                    setCurrentView('order-confirmation')
+                                  }
+                                }, 500)
+                                return
+                              }
+                              window.location.href = body.url
+                              return
+                            }
+                          } catch {}
+                        }
+                        setLastOrderNumber(placedOrderNumber)
+                        setCartItems([])
+                        setAppliedPromo(null)
+                        setPromoInput('')
+                        setCurrentView('order-confirmation')
+                      } catch {
+                        setCheckoutError('Something went wrong. Please try again.')
+                      } finally {
+                        setCheckoutLoading(false)
+                      }
                     }}
-                    className="w-full mt-6 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
+                    disabled={checkoutLoading}
+                    className="w-full mt-6 py-4 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-60 disabled:cursor-wait text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
                   >
-                    <Check size={18} /> Place Order
+                    {checkoutLoading ? (
+                      <><Loader2 size={18} className="animate-spin" /> Processing...</>
+                    ) : (
+                      <><Check size={18} /> Pay Securely</>
+                    )}
                   </button>
+                  {checkoutError && (
+                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                      <p className="text-red-400 text-sm text-center">{checkoutError}</p>
+                    </div>
+                  )}
                   <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-zinc-800">
                     <Shield size={16} className="text-zinc-600" />
                     <p className="text-zinc-600 text-xs">Secure checkout · SSL encrypted</p>
