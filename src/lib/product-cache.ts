@@ -147,7 +147,7 @@ export function shapeProduct(p: any) {
       option1: v.option1,
       option2: v.option2,
       option3: v.option3,
-      inStock: v.inventory_policy === 'continue' || (v.inventory_quantity ?? 0) > 0,
+      inStock: !v.inventory_management || v.inventory_policy === 'continue' || (v.inventory_quantity ?? 0) > 0,
       inventoryQuantity: v.inventory_quantity ?? 0,
       sku: v.sku,
       grams: v.grams,
@@ -160,7 +160,7 @@ export function shapeProduct(p: any) {
       values: o.values ?? [],
     })),
     minPrice: Math.min(...(p.variants ?? []).map((v: any) => parseFloat(v.price))),
-    inStock: (p.variants ?? []).some((v: any) => v.inventory_policy === 'continue' || (v.inventory_quantity ?? 0) > 0),
+    inStock: (p.variants ?? []).some((v: any) => !v.inventory_management || v.inventory_policy === 'continue' || (v.inventory_quantity ?? 0) > 0),
   }
 }
 
