@@ -2371,7 +2371,7 @@ app.get('/shopify/fix-fulfillment', async (c) => {
 app.get('/shopify/retag-batches', async (c) => {
   try {
     const page = parseInt(c.req.query('page') || '1', 10)
-    const BATCH_SIZE = 20
+    const BATCH_SIZE = 10
     const BATCH_TAG_RE = /^batch[- ]?\d+$/i
 
     const cached = readCache()
