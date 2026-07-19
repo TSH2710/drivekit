@@ -1286,6 +1286,37 @@ export default function DriveKitStore() {
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [miniCartOpen, setMiniCartOpen] = useState(false)
 
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [allReviewStats, setAllReviewStats] = useState<Record<string, { average: number; count: number }>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    async function fetchProducts() {
+      try {
+        const res = await fetch('/api/shopify/products')
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) { setError(body.error ?? `HTTP ${res.status}`); return }
+        if (!cancelled) setProducts(body.products ?? [])
+      } catch (e) {
+        if (!cancelled) setError('Failed to load products')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchProducts()
+
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/reviews/stats/all')
+      .then(r => r.json())
+      .then(data => { if (data.stats) setAllReviewStats(data.stats) })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 400)
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -1293,7 +1324,7 @@ export default function DriveKitStore() {
   }, [])
 
   useEffect(() => {
-    const path = window.location.pathname.replace(/^\/+/, '').toLowerCase()
+    const path = window.location.pathname.replace(/^\\/+/, '').toLowerCase()
     const knownViews = ['products', 'checkout', 'order-tracking', 'contact', 'returns', 'admin', 'my-orders', 'terms', 'privacy', 'sitemap', 'faq'] as const
     if (path.startsWith('product/') && products.length > 0) {
       const slug = path.replace('product/', '')
