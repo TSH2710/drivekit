@@ -2340,6 +2340,64 @@ app.get('/shopify/fix-fulfillment', async (c) => {
   }
 })
 
+// ── Retag Products into 3 Batches ─────────────────────────────
+// GET /shopify/retag-batches — redistributes all products into Batch1/Batch2/Batch3
+
+app.get('/shopify/retag-batches', async (c) => {
+  try {
+    const rawProducts = await fetchAllShopifyProducts()
+    const active = rawProducts.filter((p: any) => p.status === 'active')
+
+    const BATCH_TAG_RE = /^batch[- ]?\d+$/i
+    const results: Array<{ title: string; oldTags: string; newTags: string }> = []
+    let updated = 0
+    let errors = 0
+
+    for (let i = 0; i < active.length; i++) {
+      const p = active[i] as any
+      const batchNum = Math.floor(i / 20) + 1
+      const batchTag = `Batch${batchNum}`
+
+      const oldTags: string[] = (p.tags ?? '').split(',').map((t: string) => t.trim()).filter(Boolean)
+      const cleaned = oldTags.filter((t: string) => !BATCH_TAG_RE.test(t))
+      const newTags = [...cleaned, batchTag]
+      const newTagStr = newTags.join(', ')
+
+      try {
+        await shopifyApiPut(`/products/${p.id}.json`, {
+          product: { id: p.id, tags: newTagStr },
+        })
+        results.push({ title: p.title, oldTags: oldTags.join(', '), newTags: newTagStr })
+        updated++
+        await new Promise(r => setTimeout(r, 400))
+      } catch (err: any) {
+        results.push({ title: p.title, oldTags: oldTags.join(', '), newTags: `ERROR: ${err.message}` })
+        errors++
+      }
+    }
+
+    // Refresh cache
+    try {
+      const products = active.map(shapeProduct)
+      writeCache(products)
+    } catch {}
+
+    const batchCounts = [0, 0, 0]
+    active.forEach((_, i) => { const b = Math.floor(i / 20); if (b < 3) batchCounts[b]++ })
+
+    return c.json({
+      ok: true,
+      total: active.length,
+      updated,
+      errors,
+      batchCounts: { Batch1: batchCounts[0], Batch2: batchCounts[1], Batch3: batchCounts[2] },
+      results,
+    })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Retag failed' }, 500)
+  }
+})
+
 // ── Auto-Seed Owner Account ───────────────────────────────────
 ;(async () => {
   try {

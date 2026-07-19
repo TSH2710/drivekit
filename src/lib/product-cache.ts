@@ -160,7 +160,7 @@ export function shapeProduct(p: any) {
       values: o.values ?? [],
     })),
     minPrice: Math.min(...(p.variants ?? []).map((v: any) => parseFloat(v.price))),
-    inStock: (p.variants ?? []).some((v: any) => !v.inventory_management || v.inventory_policy === 'continue' || (v.inventory_quantity ?? 0) > 0),
+    inStock: true,
   }
 }
 
