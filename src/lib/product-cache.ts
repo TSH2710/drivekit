@@ -147,7 +147,7 @@ export function shapeProduct(p: any) {
       option1: v.option1,
       option2: v.option2,
       option3: v.option3,
-      inStock: !v.inventory_management || v.inventory_policy === 'continue' || (v.inventory_quantity ?? 0) > 0,
+      inStock: true,
       inventoryQuantity: v.inventory_quantity ?? 0,
       sku: v.sku,
       grams: v.grams,
