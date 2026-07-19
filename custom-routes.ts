@@ -2466,4 +2466,41 @@ app.get('/shopify/retag-batches', async (c) => {
   }
 })()
 
+// ── Promo Code Validation (server-side) ──────────────────────
+
+const PROMO_CODES: Record<string, { discount: number; label: string }> = {
+  OWNER: { discount: 1.0, label: '100% off — Free order' },
+  DRIVE20: { discount: 0.20, label: '20% off' },
+  WELCOME10: { discount: 0.10, label: '10% off' },
+  VIP15: { discount: 0.15, label: '15% off' },
+  FREEBIE: { discount: 0, label: 'Free shipping' },
+}
+
+app.post('/promos/validate', async (c) => {
+  const body = await c.req.json<{ code?: string }>()
+  const code = body.code?.trim().toUpperCase()
+  if (!code) return c.json({ error: 'Please enter a code' }, 400)
+  const match = PROMO_CODES[code]
+  if (!match) return c.json({ valid: false, error: 'Invalid promo code' }, 400)
+  return c.json({ valid: true, code, ...match })
+})
+
+// ── Review Stats (all products) ──────────────────────────────
+
+app.get('/reviews/stats/all', async (c) => {
+  const reviews = await prisma.review.groupBy({
+    by: ['productId'],
+    _avg: { rating: true },
+    _count: { rating: true },
+  })
+  const stats: Record<string, { average: number; count: number }> = {}
+  for (const r of reviews) {
+    stats[r.productId] = {
+      average: Math.round((r._avg.rating ?? 0) * 10) / 10,
+      count: r._count.rating,
+    }
+  }
+  return c.json({ stats })
+})
+
 export default app

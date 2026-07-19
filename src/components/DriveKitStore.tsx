@@ -377,10 +377,6 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
   const [lightBoxOpen, setLightBoxOpen] = useState(false)
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
   const [isZooming, setIsZooming] = useState(false)
-  const [viewerCount] = useState(() => Math.floor(Math.random() * 12) + 4)
-  const [viewerFluctuation, setViewerFluctuation] = useState(0)
-  const [recentPurchase, setRecentPurchase] = useState<{ name: string; city: string } | null>(null)
-  const [showPurchaseToast, setShowPurchaseToast] = useState(false)
   const [addedToCart, setAddedToCart] = useState<number | null>(null)
   const zoomContainerRef = useRef<HTMLDivElement>(null)
 
@@ -389,37 +385,6 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
     const t = setTimeout(() => setAddedToCart(null), 2000)
     return () => clearTimeout(t)
   }, [addedToCart])
-
-  useEffect(() => {
-    if (activeTab !== 'reviews' || reviewStats) return
-    const interval = setInterval(() => {
-      setViewerFluctuation((prev) => {
-        const delta = Math.random() > 0.5 ? 1 : -1
-        const next = prev + delta
-        return Math.abs(next) > 3 ? prev : next
-      })
-    }, 8000)
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    const cities = ['Austin, TX', 'Denver, CO', 'Miami, FL', 'Portland, OR', 'Chicago, IL', 'Seattle, WA', 'Nashville, TN', 'Atlanta, GA', 'San Diego, CA', 'Phoenix, AZ', 'Dallas, TX', 'Charlotte, NC']
-    const names = ['Alex', 'Jordan', 'Casey', 'Riley', 'Morgan', 'Taylor', 'Quinn', 'Drew', 'Sam', 'Jamie', 'Chris', 'Avery']
-    const timer = setTimeout(() => {
-      setRecentPurchase({
-        name: names[Math.floor(Math.random() * names.length)],
-        city: cities[Math.floor(Math.random() * cities.length)],
-      })
-      setShowPurchaseToast(true)
-    }, Math.random() * 12000 + 8000)
-    return () => clearTimeout(timer)
-  }, [product.id])
-
-  useEffect(() => {
-    if (!showPurchaseToast) return
-    const t = setTimeout(() => setShowPurchaseToast(false), 5000)
-    return () => clearTimeout(t)
-  }, [showPurchaseToast])
 
   useEffect(() => {
     if (activeTab !== 'reviews') return
@@ -719,13 +684,6 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
               <div className={`w-2 h-2 rounded-full ${displayInStock ? 'bg-emerald-400' : 'bg-red-400'}`} />
               {displayInStock ? 'In Stock — Ships within 24 hours' : 'Out of Stock — Join Waitlist'}
             </div>
-
-            {displayInStock && (
-              <div className="flex items-center gap-2 mb-6 text-sm text-zinc-400">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span><span className="text-white font-bold">{viewerCount + viewerFluctuation}</span> people viewing this right now</span>
-              </div>
-            )}
 
             {displayInStock && (
               <div className="flex items-center gap-4 mb-5">
@@ -1203,21 +1161,6 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
       </div>
     </div>
 
-      {/* Purchase notification toast */}
-      {showPurchaseToast && recentPurchase && (
-        <div className="fixed bottom-6 left-6 z-[90] bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl px-5 py-4 flex items-center gap-3 animate-in slide-in-from-left duration-500">
-          <div className="w-10 h-10 bg-emerald-500/10 rounded-full flex items-center justify-center shrink-0">
-            <CheckCircle size={20} className="text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-white text-sm font-semibold">{recentPurchase.name} from {recentPurchase.city}</p>
-            <p className="text-zinc-500 text-xs">just purchased this item</p>
-          </div>
-          <button onClick={() => setShowPurchaseToast(false)} className="ml-2 text-zinc-600 hover:text-zinc-400 transition-colors">
-            <X size={14} />
-          </button>
-        </div>
-      )}
     </>
   )
 }
@@ -1268,6 +1211,7 @@ export default function DriveKitStore() {
   const [promoInput, setPromoInput] = useState('')
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number; label: string } | null>(null)
   const [promoError, setPromoError] = useState('')
+  const [promoLoading, setPromoLoading] = useState(false)
   const [checkoutFirstName, setCheckoutFirstName] = useState('')
   const [checkoutLastName, setCheckoutLastName] = useState('')
   const [checkoutEmail, setCheckoutEmail] = useState('')
@@ -1450,14 +1394,6 @@ export default function DriveKitStore() {
     localStorage.removeItem('drivekit_token'); localStorage.removeItem('drivekit_user')
   }
 
-  const PROMO_CODES: Record<string, { discount: number; label: string }> = {
-    OWNER: { discount: 1.0, label: '100% off — Free order' },
-    DRIVE20: { discount: 0.20, label: '20% off' },
-    WELCOME10: { discount: 0.10, label: '10% off' },
-    VIP15: { discount: 0.15, label: '15% off' },
-    FREEBIE: { discount: 0, label: 'Free shipping' },
-  }
-
   const FREE_SHIPPING_THRESHOLD = 99
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const getCartItemPrice = (item: { product: Product; variantPrice?: number }) => item.variantPrice ?? item.product.minPrice
@@ -1523,6 +1459,7 @@ export default function DriveKitStore() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [allReviewStats, setAllReviewStats] = useState<Record<string, { average: number; count: number }>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -1541,6 +1478,13 @@ export default function DriveKitStore() {
     fetchProducts()
 
     return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/reviews/stats/all')
+      .then(r => r.json())
+      .then(data => { if (data.stats) setAllReviewStats(data.stats) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -1567,8 +1511,8 @@ export default function DriveKitStore() {
   const filteredProducts = (() => {
     let list = products.filter((p) => !p.hidden)
     if (activeCategory === 'Trending Now') list = [...list].sort(() => Math.random() - 0.5).slice(0, 12)
-    else if (activeCategory === 'Best Sellers') list = [...list].sort((a, b) => b.variants.reduce((s, v) => s + v.inventoryQuantity, 0) - a.variants.reduce((s, v) => s + v.inventoryQuantity, 0)).slice(0, 15)
-    else if (activeCategory === 'Top Rated') list = [...list].filter(p => p.inStock).sort((a, b) => { const aScore = a.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(a.variants) ? 50 : 0); const bScore = b.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(b.variants) ? 50 : 0); return bScore - aScore }).slice(0, 12)
+    else if (activeCategory === 'Best Sellers') list = [...list].sort((a, b) => { const aInv = a.variants.reduce((s, v) => s + v.inventoryQuantity, 0); const bInv = b.variants.reduce((s, v) => s + v.inventoryQuantity, 0); if (aInv !== bInv) return bInv - aInv; return (allReviewStats[String(b.id)]?.count ?? 0) - (allReviewStats[String(a.id)]?.count ?? 0) }).slice(0, 15)
+    else if (activeCategory === 'Top Rated') list = [...list].filter(p => p.inStock).sort((a, b) => { const aStats = allReviewStats[String(a.id)] ?? { average: 0, count: 0 }; const bStats = allReviewStats[String(b.id)] ?? { average: 0, count: 0 }; if (aStats.average !== bStats.average) return bStats.average - aStats.average; return bStats.count - aStats.count }).slice(0, 12)
     else if (activeCategory === 'New Arrivals') list = [...list].sort((a, b) => b.id - a.id).slice(0, 12)
     else if (activeCategory === 'Deals') list = list.filter((p) => {
       const compareAt = getCompareAtPrice(p.variants)
@@ -1592,7 +1536,7 @@ export default function DriveKitStore() {
     list = list.filter((p) => p.minPrice >= priceRange[0] && p.minPrice <= priceRange[1])
     if (vendorFilter) list = list.filter((p) => p.vendor === vendorFilter)
     if (inStockOnly) list = list.filter((p) => p.inStock)
-    if (ratingFilter > 0) list = list.filter((p) => p.variants.reduce((s, v) => s + v.inventoryQuantity, 0) >= ratingFilter * 5)
+    if (ratingFilter > 0) list = list.filter((p) => { const stats = allReviewStats[String(p.id)]; return stats ? stats.average >= ratingFilter : false })
     if (sortBy === 'price-asc') list = [...list].sort((a, b) => a.minPrice - b.minPrice)
     else if (sortBy === 'price-desc') list = [...list].sort((a, b) => b.minPrice - a.minPrice)
     else if (sortBy === 'newest') list = [...list].reverse()
@@ -2096,22 +2040,36 @@ export default function DriveKitStore() {
                       className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-red-500 transition-colors"
                     />
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const code = promoInput.trim().toUpperCase()
                         if (!code) { setPromoError('Please enter a code'); return }
                         if (appliedPromo?.code === code) { setPromoError('Code already applied'); return }
-                        const match = PROMO_CODES[code]
-                        if (match) {
-                          setAppliedPromo({ code, ...match })
-                          setPromoError('')
-                        } else {
-                          setPromoError('Invalid promo code')
-                          setAppliedPromo(null)
+                        setPromoLoading(true)
+                        setPromoError('')
+                        try {
+                          const res = await fetch('/api/promos/validate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ code }),
+                          })
+                          const data = await res.json()
+                          if (data.valid) {
+                            setAppliedPromo({ code: data.code, discount: data.discount, label: data.label })
+                            setPromoError('')
+                          } else {
+                            setPromoError(data.error || 'Invalid promo code')
+                            setAppliedPromo(null)
+                          }
+                        } catch {
+                          setPromoError('Network error — please try again')
+                        } finally {
+                          setPromoLoading(false)
                         }
                       }}
-                      className="bg-zinc-800 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors whitespace-nowrap"
+                      disabled={promoLoading}
+                      className="bg-zinc-800 border border-zinc-700 hover:border-zinc-500 disabled:opacity-50 text-zinc-300 font-bold px-5 py-3 rounded-xl text-sm transition-colors whitespace-nowrap"
                     >
-                      Apply
+                      {promoLoading ? 'Checking…' : 'Apply'}
                     </button>
                   </div>
                   {promoError && <p className="text-red-400 text-xs mt-2">{promoError}</p>}
@@ -3361,9 +3319,10 @@ export default function DriveKitStore() {
       {/* ── Top Rated ── */}
       {currentView === 'home' && products.length > 0 && (() => {
         const topRated = [...products].filter(p => !p.hidden && p.inStock).sort((a, b) => {
-          const aScore = a.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(a.variants) ? 50 : 0)
-          const bScore = b.variants.reduce((s, v) => s + v.inventoryQuantity, 0) + (getCompareAtPrice(b.variants) ? 50 : 0)
-          return bScore - aScore
+          const aStats = allReviewStats[String(a.id)] ?? { average: 0, count: 0 }
+          const bStats = allReviewStats[String(b.id)] ?? { average: 0, count: 0 }
+          if (aStats.average !== bStats.average) return bStats.average - aStats.average
+          return bStats.count - aStats.count
         }).slice(0, 6)
         if (topRated.length === 0) return null
         return (
