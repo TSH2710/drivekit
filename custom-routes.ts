@@ -563,7 +563,7 @@ const HEALTH_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000 // 6 hours
 
 app.get('/shopify/token-status', async (c) => {
   const now = Date.now()
-  if (lastHealthResult && now - lastHealthCheck < HEALTH_CHECK_INTERVAL_MS) {
+  if (lastHealthResult && lastHealthResult.ok && now - lastHealthCheck < HEALTH_CHECK_INTERVAL_MS) {
     return c.json(lastHealthResult)
   }
 
