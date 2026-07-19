@@ -11,6 +11,7 @@ import AdminDashboard from './AdminDashboard'
 import MyOrders from './MyOrders'
 import VehicleChecker from './VehicleChecker'
 import FAQ from './FAQ'
+import MiniCartDrawer from './MiniCartDrawer'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,20 @@ function getBadgeTag(tags: string[]): string | null {
   return tags.find((t) => !/all[- ]?season/i.test(t)) ?? null
 }
 
+function fuzzyMatch(query: string, text: string): boolean {
+  const q = query.toLowerCase()
+  const t = text.toLowerCase()
+  if (t.includes(q)) return true
+  const words = q.split(/\s+/).filter(Boolean)
+  if (words.length > 1) return words.every(w => t.includes(w))
+  if (q.length < 3) return false
+  let qi = 0
+  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+    if (t[ti] === q[qi]) qi++
+  }
+  return qi === q.length
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ProductMeta({ product }: { product: Product }) {
@@ -159,7 +174,7 @@ function ProductMeta({ product }: { product: Product }) {
   )
 }
 
-function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompared, onToggleCompare }: { product: Product; onClick: () => void; isWishlisted: boolean; onToggleWishlist: (id: number) => void; isCompared: boolean; onToggleCompare: (id: number) => void }) {
+function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompared, onToggleCompare, onQuickAdd }: { product: Product; onClick: () => void; isWishlisted: boolean; onToggleWishlist: (id: number) => void; isCompared: boolean; onToggleCompare: (id: number) => void; onQuickAdd?: (product: Product) => void }) {
   const compareAt = getCompareAtPrice(product.variants)
   const discount = getDiscountPercent(product.minPrice, compareAt)
   const firstImage = product.images[0]
@@ -233,14 +248,25 @@ function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompa
           )}
         </div>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); onClick() }}
-          disabled={!product.inStock}
-          className="mt-3 w-full py-2.5 rounded-lg bg-red-600 hover:bg-red-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-        >
-          <Eye size={15} />
-          View Details
-        </button>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={(e) => { e.stopPropagation(); onClick() }}
+            disabled={!product.inStock}
+            className="flex-1 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-300 font-semibold text-sm transition-colors flex items-center justify-center gap-2 border border-zinc-700"
+          >
+            <Eye size={15} />
+            Details
+          </button>
+          {product.inStock && onQuickAdd && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuickAdd(product) }}
+              className="py-2.5 px-4 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              title="Add to cart"
+            >
+              <ShoppingCart size={15} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1258,6 +1284,7 @@ export default function DriveKitStore() {
   const [contactSent, setContactSent] = useState(false)
   const [contactError, setContactError] = useState('')
   const [showBackToTop, setShowBackToTop] = useState(false)
+  const [miniCartOpen, setMiniCartOpen] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 400)
@@ -1267,11 +1294,30 @@ export default function DriveKitStore() {
 
   useEffect(() => {
     const path = window.location.pathname.replace(/^\/+/, '').toLowerCase()
-    const knownViews = ['products', 'checkout', 'order-tracking', 'contact', 'returns', 'admin', 'my-orders', 'terms', 'privacy', 'sitemap', 'faq']
-    if (path && !knownViews.some((v) => path.startsWith(v)) && !/^\d+$/.test(path)) {
+    const knownViews = ['products', 'checkout', 'order-tracking', 'contact', 'returns', 'admin', 'my-orders', 'terms', 'privacy', 'sitemap', 'faq'] as const
+    if (path.startsWith('product/') && products.length > 0) {
+      const slug = path.replace('product/', '')
+      const found = products.find(p => p.handle === slug || String(p.id) === slug)
+      if (found) { setSelectedProduct(found); setCurrentView('home') }
+      else setCurrentView('not-found')
+    } else if (path && !knownViews.some((v) => path.startsWith(v)) && !/^\d+$/.test(path)) {
       setCurrentView('not-found')
     }
-  }, [])
+    const onPop = () => {
+      const p = window.location.pathname.replace(/^\/+/, '').toLowerCase()
+      if (p.startsWith('product/')) {
+        const slug = p.replace('product/', '')
+        const found = products.find(pr => pr.handle === slug || String(pr.id) === slug)
+        if (found) { setSelectedProduct(found); setCurrentView('home') }
+      } else if (p === '' || p === '/') {
+        setSelectedProduct(null); setCurrentView('home')
+      } else if (['products','checkout','order-tracking','contact','returns','admin','my-orders','terms','privacy','sitemap','faq'].some(v => p.startsWith(v))) {
+        setSelectedProduct(null); setCurrentView(p.replace(/-/g, '-') as any)
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [products])
   const toggleWishlist = useCallback((productId: number) => {
     setWishlistedIds((prev) => {
       const next = new Set(prev)
@@ -1310,6 +1356,19 @@ export default function DriveKitStore() {
   useEffect(() => {
     if (selectedProduct) trackRecentlyViewed(selectedProduct)
   }, [selectedProduct])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (selectedProduct) {
+      window.history.pushState({}, '', `/product/${selectedProduct.handle || selectedProduct.id}`)
+    } else if (currentView === 'home') {
+      window.history.pushState({}, '', '/')
+    } else if (currentView === 'products') {
+      window.history.pushState({}, '', '/products')
+    } else {
+      window.history.pushState({}, '', `/${currentView.replace(/-/g, '-')}`)
+    }
+  }, [selectedProduct?.id, currentView])
 
   useEffect(() => {
     try { localStorage.setItem('drivekit_recently_viewed', JSON.stringify(recentlyViewed)) } catch {}
@@ -1499,6 +1558,15 @@ export default function DriveKitStore() {
   useEffect(() => { setCurrentPage(1) }, [searchQuery, activeCategory, priceRange, vendorFilter, inStockOnly, ratingFilter])
 
   useEffect(() => {
+    if (currentView === 'checkout' && currentUser && !checkoutEmail) {
+      const parts = (currentUser.name || '').split(' ')
+      if (parts.length >= 1 && !checkoutFirstName) setCheckoutFirstName(parts[0])
+      if (parts.length >= 2 && !checkoutLastName) setCheckoutLastName(parts.slice(1).join(' '))
+      if (!checkoutEmail) setCheckoutEmail(currentUser.email)
+    }
+  }, [currentView, currentUser])
+
+  useEffect(() => {
     try { localStorage.setItem('drivekit_cart', JSON.stringify(cartItems)) } catch {}
   }, [cartItems])
 
@@ -1553,7 +1621,7 @@ export default function DriveKitStore() {
           p.productType || '',
           ...p.tags,
         ].join(' ').toLowerCase()
-        return words.every((w) => haystack.includes(w))
+        return words.every((w) => haystack.includes(w)) || fuzzyMatch(q, haystack)
       }
     )
   })()
@@ -1573,7 +1641,7 @@ export default function DriveKitStore() {
     const matches = products.filter((p) => {
       if (p.hidden) return false
       const haystack = [p.title, p.vendor, p.productType || '', ...p.tags].join(' ').toLowerCase()
-      return words.every((w) => haystack.includes(w))
+      return words.every((w) => haystack.includes(w)) || fuzzyMatch(q, haystack)
     })
     return matches.slice(0, 8)
   }, [searchQuery, products])
@@ -2769,7 +2837,7 @@ export default function DriveKitStore() {
                 <Search size={19} />
               </button>
               <button
-                onClick={() => { setCurrentView('checkout') }}
+                onClick={() => { setMiniCartOpen(true) }}
                 aria-label={`Shopping cart, ${cartCount} items`}
                 className="relative p-2 text-zinc-400 hover:text-white transition-colors"
               >
@@ -3645,7 +3713,7 @@ export default function DriveKitStore() {
           <>
           <div key={`grid-${searchQuery}-${activeCategory}-${currentPage}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {paginatedProducts.map((p) => (
-              <ProductCard key={p.handle || `product-${p.id}`} product={p} onClick={() => setSelectedProduct(p)} isWishlisted={wishlistedIds.has(p.id)} onToggleWishlist={toggleWishlist} isCompared={comparedIds.has(p.id)} onToggleCompare={toggleCompare} />
+              <ProductCard key={p.handle || `product-${p.id}`} product={p} onClick={() => setSelectedProduct(p)} isWishlisted={wishlistedIds.has(p.id)} onToggleWishlist={toggleWishlist} isCompared={comparedIds.has(p.id)} onToggleCompare={toggleCompare} onQuickAdd={(prod) => { addToCart(prod, 1); setMiniCartOpen(true) }} />
             ))}
           </div>
 
@@ -4015,6 +4083,16 @@ export default function DriveKitStore() {
           </div>
         </div>
       )}
+
+      {/* ── Mini Cart Drawer ── */}
+      <MiniCartDrawer
+        open={miniCartOpen}
+        onClose={() => setMiniCartOpen(false)}
+        cartItems={cartItems}
+        updateQuantity={updateCartQuantity}
+        removeFromCart={removeFromCart}
+        onCheckout={() => setCurrentView('checkout')}
+      />
 
       {/* ── Comparison Bar ── */}
       {comparedIds.size > 0 && !showComparison && (
