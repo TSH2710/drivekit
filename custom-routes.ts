@@ -568,7 +568,19 @@ app.get('/shopify/token-status', async (c) => {
   }
 
   const envToken = process.env.SHOPIFY_ACCESS_TOKEN || ''
-  const cached = readTokenCache()
+  let cached = readTokenCache()
+
+  // If no file cache, try DB
+  if (!cached) {
+    try {
+      const record = await prisma.siteContent.findUnique({ where: { key: 'shopify-token-cache' } })
+      if (record) {
+        cached = JSON.parse(record.value)
+        writeTokenCache(cached!)
+        console.log('[shopify-token-status] Token restored from database')
+      }
+    } catch {}
+  }
 
   let tokenToCheck = envToken
   let source = 'env'
