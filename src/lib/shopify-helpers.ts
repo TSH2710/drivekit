@@ -60,15 +60,27 @@ export interface TokenCache {
 }
 
 export function readTokenCache(): TokenCache | null {
-  if (!existsSync(TOKEN_CACHE_FILE)) return null
-  try {
-    return JSON.parse(readFileSync(TOKEN_CACHE_FILE, 'utf-8'))
-  } catch { return null }
+  if (existsSync(TOKEN_CACHE_FILE)) {
+    try {
+      return JSON.parse(readFileSync(TOKEN_CACHE_FILE, 'utf-8'))
+    } catch {}
+  }
+  return null
 }
 
 export function writeTokenCache(data: TokenCache) {
   if (!existsSync(CACHE_DIR)) mkdirSync(CACHE_DIR, { recursive: true })
   writeFileSync(TOKEN_CACHE_FILE, JSON.stringify(data, null, 2))
+  // Also persist to database so token survives Railway deploys
+  try {
+    const { PrismaClient } = require('../generated/prisma') as typeof import('../generated/prisma')
+    const p = new PrismaClient()
+    p.siteContent.upsert({
+      where: { key: 'shopify-token-cache' },
+      update: { value: JSON.stringify(data) },
+      create: { key: 'shopify-token-cache', value: JSON.stringify(data) },
+    }).then(() => p.$disconnect()).catch(() => p.$disconnect())
+  } catch {}
 }
 
 export function getActiveToken(): string {
@@ -116,9 +128,24 @@ export async function ensureValidToken(): Promise<string> {
   }
   try {
     return await refreshAccessToken()
-  } catch {
-    return getActiveToken()
-  }
+  } catch {}
+  // Last resort: try restoring from database (survives Railway deploys)
+  try {
+    const { PrismaClient } = require('../generated/prisma') as typeof import('../generated/prisma')
+    const p = new PrismaClient()
+    const record = await p.siteContent.findUnique({ where: { key: 'shopify-token-cache' } })
+    if (record) {
+      const data: TokenCache = JSON.parse(record.value)
+      if (data.accessToken && await validateCurrentToken(data.accessToken)) {
+        SHOPIFY_TOKEN = data.accessToken
+        writeTokenCache(data)
+        await p.$disconnect()
+        return data.accessToken
+      }
+    }
+    await p.$disconnect()
+  } catch {}
+  return getActiveToken()
 }
 
 export async function shopifyFetch(path: string): Promise<any> {

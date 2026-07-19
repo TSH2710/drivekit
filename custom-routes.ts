@@ -2341,55 +2341,56 @@ app.get('/shopify/fix-fulfillment', async (c) => {
 })
 
 // ── Retag Products into 3 Batches ─────────────────────────────
-// GET /shopify/retag-batches — redistributes all products into Batch1/Batch2/Batch3
+// GET /shopify/retag-batches?page=1 — processes 20 products per page
 
 app.get('/shopify/retag-batches', async (c) => {
   try {
+    const page = parseInt(c.req.query('page') || '1', 10)
+    const BATCH_SIZE = 20
+    const BATCH_TAG_RE = /^batch[- ]?\d+$/i
+
     const rawProducts = await fetchAllShopifyProducts()
     const active = rawProducts.filter((p: any) => p.status === 'active')
+    const totalPages = Math.ceil(active.length / BATCH_SIZE)
+    const startIdx = (page - 1) * BATCH_SIZE
+    const endIdx = Math.min(startIdx + BATCH_SIZE, active.length)
+    const slice = active.slice(startIdx, endIdx)
 
-    const BATCH_TAG_RE = /^batch[- ]?\d+$/i
-    const results: Array<{ title: string; oldTags: string; newTags: string }> = []
+    const results: Array<{ title: string; newTags: string }> = []
     let updated = 0
     let errors = 0
 
-    for (let i = 0; i < active.length; i++) {
-      const p = active[i] as any
-      const batchNum = Math.floor(i / 20) + 1
+    for (const p of slice) {
+      const batchNum = Math.floor((active.indexOf(p)) / BATCH_SIZE) + 1
       const batchTag = `Batch${batchNum}`
-
       const oldTags: string[] = (p.tags ?? '').split(',').map((t: string) => t.trim()).filter(Boolean)
       const cleaned = oldTags.filter((t: string) => !BATCH_TAG_RE.test(t))
-      const newTags = [...cleaned, batchTag]
-      const newTagStr = newTags.join(', ')
+      const newTagStr = [...cleaned, batchTag].join(', ')
 
       try {
         await shopifyApiPut(`/products/${p.id}.json`, {
           product: { id: p.id, tags: newTagStr },
         })
-        results.push({ title: p.title, oldTags: oldTags.join(', '), newTags: newTagStr })
+        results.push({ title: p.title, newTags: newTagStr })
         updated++
         await new Promise(r => setTimeout(r, 600))
       } catch (err: any) {
-        results.push({ title: p.title, oldTags: oldTags.join(', '), newTags: `ERROR: ${err.message}` })
+        results.push({ title: p.title, newTags: `ERROR: ${err.message}` })
         errors++
       }
     }
 
-    // Refresh cache
-    try {
-      const products = active.map(shapeProduct)
-      writeCache(products)
-    } catch {}
-
     const batchCounts = [0, 0, 0]
-    active.forEach((_, i) => { const b = Math.floor(i / 20); if (b < 3) batchCounts[b]++ })
+    active.forEach((_, i) => { const b = Math.floor(i / BATCH_SIZE); if (b < 3) batchCounts[b]++ })
 
     return c.json({
       ok: true,
-      total: active.length,
+      page,
+      totalPages,
+      processedThisPage: slice.length,
       updated,
       errors,
+      total: active.length,
       batchCounts: { Batch1: batchCounts[0], Batch2: batchCounts[1], Batch3: batchCounts[2] },
       results,
     })
