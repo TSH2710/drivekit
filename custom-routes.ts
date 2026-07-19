@@ -490,7 +490,20 @@ app.get('/shopify/oauth/callback', async (c) => {
     const data = await res.json() as { access_token?: string; scope?: string; error?: string }
     if (!data.access_token) return c.json({ error: data.error ?? 'Token exchange failed', details: data }, 400)
 
-    writeTokenCache({ accessToken: data.access_token, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, scope: data.scope ?? '' })
+    const tokenData = { accessToken: data.access_token, expiresAt: Date.now() + 365 * 24 * 60 * 60 * 1000, scope: data.scope ?? '' }
+    writeTokenCache(tokenData)
+
+    // Persist to database so token survives Railway deploys
+    try {
+      await prisma.siteContent.upsert({
+        where: { key: 'shopify-token-cache' },
+        update: { value: JSON.stringify(tokenData) },
+        create: { key: 'shopify-token-cache', value: JSON.stringify(tokenData) },
+      })
+      console.log('[shopify-oauth] Token also saved to database')
+    } catch (e: any) {
+      console.error('[shopify-oauth] Failed to save token to DB:', e.message)
+    }
 
     lastHealthResult = { ok: true, checkedAt: new Date().toISOString(), source: 'oauth-callback', message: 'Shopify token refreshed successfully' }
     lastHealthCheck = Date.now()
