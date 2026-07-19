@@ -929,9 +929,7 @@ app.get('/shopify/reauthorize', async (c) => {
   // Last resort: try DB
   if (!envToken) {
     try {
-      const { PrismaClient } = require('./src/generated/prisma') as typeof import('./src/generated/prisma')
-      const p = new PrismaClient()
-      const record = await p.siteContent.findUnique({ where: { key: 'shopify-token-cache' } })
+      const record = await prisma.siteContent.findUnique({ where: { key: 'shopify-token-cache' } })
       if (record) {
         const data = JSON.parse(record.value)
         if (data.accessToken) {
@@ -941,7 +939,6 @@ app.get('/shopify/reauthorize', async (c) => {
           writeTokenCache(data)
         }
       }
-      await p.$disconnect()
     } catch {}
   }
 
@@ -2371,7 +2368,7 @@ app.get('/shopify/fix-fulfillment', async (c) => {
 app.get('/shopify/retag-batches', async (c) => {
   try {
     const page = parseInt(c.req.query('page') || '1', 10)
-    const BATCH_SIZE = 10
+    const BATCH_SIZE = parseInt(c.req.query('batchSize') || '10', 10)
     const BATCH_TAG_RE = /^batch[- ]?\d+$/i
 
     const cached = readCache()
