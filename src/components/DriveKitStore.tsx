@@ -1324,7 +1324,7 @@ export default function DriveKitStore() {
   }, [])
 
   useEffect(() => {
-    const path = window.location.pathname.replace(/^\/+/, '').toLowerCase()
+    const path = window.location.pathname.split('/').filter(Boolean).join('/').toLowerCase()
     const knownViews = ['products', 'checkout', 'order-tracking', 'contact', 'returns', 'admin', 'my-orders', 'terms', 'privacy', 'sitemap', 'faq'] as const
     if (path.startsWith('product/') && products.length > 0) {
       const slug = path.replace('product/', '')
@@ -1335,7 +1335,7 @@ export default function DriveKitStore() {
       setCurrentView('not-found')
     }
     const onPop = () => {
-      const p = window.location.pathname.replace(/^\/+/, '').toLowerCase()
+      const p = window.location.pathname.split('/').filter(Boolean).join('/').toLowerCase()
       if (p.startsWith('product/')) {
         const slug = p.replace('product/', '')
         const found = products.find(pr => pr.handle === slug || String(pr.id) === slug)
