@@ -2369,7 +2369,7 @@ app.get('/shopify/retag-batches', async (c) => {
         })
         results.push({ title: p.title, oldTags: oldTags.join(', '), newTags: newTagStr })
         updated++
-        await new Promise(r => setTimeout(r, 400))
+        await new Promise(r => setTimeout(r, 600))
       } catch (err: any) {
         results.push({ title: p.title, oldTags: oldTags.join(', '), newTags: `ERROR: ${err.message}` })
         errors++
