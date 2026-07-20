@@ -2736,11 +2736,12 @@ app.get('/shopify/swap-cover-images', async (c) => {
     if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
     const gqlQuery = `{
-      products(first: 250, query: "status:active") {
+      products(first: 250) {
         edges {
           node {
             id
             title
+            status
             images(first: 5) {
               edges {
                 node {
@@ -2767,7 +2768,8 @@ app.get('/shopify/swap-cover-images', async (c) => {
     }
 
     const gqlData = await gqlRes.json() as any
-    const productEdges = gqlData?.data?.products?.edges ?? []
+    const allProductEdges = gqlData?.data?.products?.edges ?? []
+    const productEdges = allProductEdges.filter((e: any) => e.node.status === 'ACTIVE')
 
     let updated = 0
     let skipped = 0
