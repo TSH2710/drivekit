@@ -2808,47 +2808,66 @@ app.get('/shopify/promote-lifestyle-covers/status', async (c) => {
   return c.json({ ok: true, ...promoteJob })
 })
 
+// Internal endpoint: returns the current valid Shopify token (for upload scripts)
+app.get('/shopify/_internal-token', async (c) => {
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid token' }, 500)
+  return c.json({ token })
+})
+
 // ── Upload Custom Cover Image ────────────────────────────────
 // POST /shopify/upload-cover — uploads a new cover image for a product
 // Body: { productId: string, imageBase64: string, filename: string }
 // The image is uploaded to Shopify and set as position 1 (cover)
 
 app.post('/shopify/upload-cover', async (c) => {
-  const body = await c.req.json<{ productId?: string; imageBase64?: string; filename?: string }>()
-  const { productId, imageBase64, filename } = body
+  const body = await c.req.json<{ productId?: string; imageBase64?: string; filename?: string; imageUrl?: string }>()
+  const { productId, imageBase64, filename, imageUrl } = body
 
-  if (!productId || !imageBase64 || !filename) {
-    return c.json({ error: 'Missing productId, imageBase64, or filename' }, 400)
+  if (!productId || (!imageBase64 && !imageUrl) || !filename) {
+    return c.json({ error: 'Missing productId, imageBase64 or imageUrl, and filename' }, 400)
   }
 
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
   try {
-    // Convert base64 to buffer
-    const imageBuffer = Buffer.from(imageBase64, 'base64')
+    let imageSrc: string
 
-    // Upload image to Shopify
-    const formData = new FormData()
-    formData.append('image', new Blob([imageBuffer], { type: 'image/png' }), filename)
-    formData.append('image', JSON.stringify({ filename, position: 1 }))
+    if (imageUrl) {
+      imageSrc = imageUrl
+    } else {
+      const imageBuffer = Buffer.from(imageBase64!, 'base64')
+      imageSrc = `data:image/png;base64,${imageBase64}`
+    }
 
     const uploadRes = await fetch(`${SHOPIFY_API}/products/${productId}/images.json`, {
       method: 'POST',
-      headers: { 'X-Shopify-Access-Token': token },
-      body: formData,
+      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: { src: imageSrc, filename, position: 1 } }),
     })
 
     if (!uploadRes.ok) {
       const errText = await uploadRes.text()
-      console.error(`[upload-cover] Shopify error: ${uploadRes.status} ${errText.slice(0, 200)}`)
-      return c.json({ error: `Shopify upload failed (${uploadRes.status})`, details: errText.slice(0, 300) }, 502)
+      console.error(`[upload-cover] Shopify error: ${uploadRes.status} ${errText.slice(0, 300)}`)
+      return c.json({ error: `Shopify upload failed (${uploadRes.status})`, details: errText.slice(0, 500) }, 502)
     }
 
     const result = await uploadRes.json() as any
     const newImage = result.image
 
-    // Refresh cache
+    if (newImage && newImage.position !== 1) {
+      const posRes = await fetch(`${SHOPIFY_API}/products/${productId}/images/${newImage.id}.json`, {
+        method: 'PUT',
+        headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: { id: newImage.id, position: 1 } }),
+      })
+      if (posRes.ok) {
+        const posResult = await posRes.json() as any
+        newImage.position = posResult.image?.position ?? 1
+      }
+    }
+
     try {
       const rawProducts = await fetchAllShopifyProducts()
       const products = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
