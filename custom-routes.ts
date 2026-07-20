@@ -2705,18 +2705,23 @@ app.delete('/shopify/products/:id', async (c) => {
   }
 })
 
-// ── Swap Cover Images in Shopify ─────────────────────────────
-// GET /shopify/swap-cover-images — swaps image positions 1 & 2 for every product
-// Runs in background, returns immediately. Poll GET /shopify/swap-cover-images/status
+// ── Promote Lifestyle Images to Cover ─────────────────────────
+// GET /shopify/promote-lifestyle-covers — moves the AI-generated lifestyle image to position 1
+// Only processes products where the lifestyle image is NOT already at position 1.
+// Runs in background. Poll GET /shopify/promote-lifestyle-covers/status
 
-let swapJob: { running: boolean; startedAt: string; total: number; processed: number; updated: number; skipped: number; errors: number; results: Array<{ title: string; action: string }>; done: boolean; error?: string } | null = null
+let promoteJob: { running: boolean; startedAt: string; total: number; processed: number; updated: number; skipped: number; errors: number; results: Array<{ title: string; action: string }>; done: boolean; error?: string } | null = null
 
-app.get('/shopify/swap-cover-images', async (c) => {
-  if (swapJob?.running) {
-    return c.json({ ok: false, message: 'Swap already running', ...swapJob }, 202)
+function isLifestyleImage(img: any): boolean {
+  const src = (img.src ?? img.url ?? '').toLowerCase()
+  return src.includes('lifestyle')
+}
+
+app.get('/shopify/promote-lifestyle-covers', async (c) => {
+  if (promoteJob?.running) {
+    return c.json({ ok: false, message: 'Job already running', ...promoteJob }, 202)
   }
 
-  // Start background job
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
   const shopifyPutWithRetry = async (url: string, body: any, retries = 5): Promise<{ ok: boolean; status: number; body?: any }> => {
@@ -2755,30 +2760,26 @@ app.get('/shopify/swap-cover-images', async (c) => {
     }
   }
 
-  swapJob = { running: true, startedAt: new Date().toISOString(), total: products.length, processed: 0, updated: 0, skipped: 0, errors: 0, results: [], done: false }
+  promoteJob = { running: true, startedAt: new Date().toISOString(), total: products.length, processed: 0, updated: 0, skipped: 0, errors: 0, results: [], done: false }
 
-  // Process in background
   ;(async () => {
     try {
       for (const p of products) {
-        const images = (p.images ?? []).sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
-        if (images.length < 2) { swapJob!.skipped++; swapJob!.results.push({ title: p.title, action: 'skipped (< 2 images)' }); swapJob!.processed++; continue }
+        const images = (p.images ?? []).slice()
+        if (images.length < 2) { promoteJob!.skipped++; promoteJob!.results.push({ title: p.title, action: 'skipped (< 2 images)' }); promoteJob!.processed++; continue }
 
-        const img1 = images[0]
-        const img2 = images[1]
+        const lifestyleIdx = images.findIndex(isLifestyleImage)
+        if (lifestyleIdx === -1) { promoteJob!.skipped++; promoteJob!.results.push({ title: p.title, action: 'skipped (no lifestyle image found)' }); promoteJob!.processed++; continue }
+        if (lifestyleIdx === 0) { promoteJob!.skipped++; promoteJob!.results.push({ title: p.title, action: 'already cover' }); promoteJob!.processed++; continue }
 
-        const res1 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img1.id}.json`, { image: { id: img1.id, position: 2 } })
-        if (!res1.ok) { swapJob!.errors++; swapJob!.results.push({ title: p.title, action: `error img1: ${res1.status}` }); swapJob!.processed++; await sleep(1000); continue }
+        const lifestyleImg = images[lifestyleIdx]
+        const res = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${lifestyleImg.id}.json`, { image: { id: lifestyleImg.id, position: 1 } })
+        if (!res.ok) { promoteJob!.errors++; promoteJob!.results.push({ title: p.title, action: `error: ${res.status}` }); promoteJob!.processed++; await sleep(1000); continue }
 
-        await sleep(500)
-
-        const res2 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img2.id}.json`, { image: { id: img2.id, position: 1 } })
-        if (!res2.ok) { swapJob!.errors++; swapJob!.results.push({ title: p.title, action: `error img2: ${res2.status}` }); swapJob!.processed++; await sleep(1000); continue }
-
-        swapJob!.updated++
-        swapJob!.results.push({ title: p.title, action: `swapped (${img1.id} ↔ ${img2.id})` })
-        swapJob!.processed++
-        await sleep(500)
+        promoteJob!.updated++
+        promoteJob!.results.push({ title: p.title, action: `moved lifestyle image (idx ${lifestyleIdx} → cover)` })
+        promoteJob!.processed++
+        await sleep(550)
       }
 
       // Refresh cache
@@ -2788,23 +2789,23 @@ app.get('/shopify/swap-cover-images', async (c) => {
         writeCache(freshProducts)
       } catch {}
 
-      swapJob!.done = true
-      swapJob!.running = false
-      console.log(`[swap] Done: ${swapJob!.updated} updated, ${swapJob!.skipped} skipped, ${swapJob!.errors} errors out of ${swapJob!.total}`)
+      promoteJob!.done = true
+      promoteJob!.running = false
+      console.log(`[promote-lifestyle] Done: ${promoteJob!.updated} updated, ${promoteJob!.skipped} skipped, ${promoteJob!.errors} errors out of ${promoteJob!.total}`)
     } catch (err: any) {
-      swapJob!.error = err.message
-      swapJob!.running = false
-      swapJob!.done = true
-      console.error(`[swap] Failed:`, err.message)
+      promoteJob!.error = err.message
+      promoteJob!.running = false
+      promoteJob!.done = true
+      console.error(`[promote-lifestyle] Failed:`, err.message)
     }
   })()
 
-  return c.json({ ok: true, message: 'Swap started in background', total: products.length, pollAt: '/api/shopify/swap-cover-images/status' }, 202)
+  return c.json({ ok: true, message: 'Started in background', total: products.length, pollAt: '/api/shopify/promote-lifestyle-covers/status' }, 202)
 })
 
-app.get('/shopify/swap-cover-images/status', async (c) => {
-  if (!swapJob) return c.json({ ok: true, message: 'No swap job found' })
-  return c.json({ ok: true, ...swapJob })
+app.get('/shopify/promote-lifestyle-covers/status', async (c) => {
+  if (!promoteJob) return c.json({ ok: true, message: 'No job found' })
+  return c.json({ ok: true, ...promoteJob })
 })
 
 // ── Auto-Seed Owner Account ───────────────────────────────────
