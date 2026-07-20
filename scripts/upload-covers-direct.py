@@ -89,18 +89,16 @@ def download_from_gdrive(file_id):
 
 
 def upload_to_shopify(product_id, image_data, filename):
-    """Upload an image to a Shopify product using multipart form.
+    """Upload an image to a Shopify product using Rails-style nested multipart form.
 
-    Shopify REST API expects:
-    - 'image' as a JSON hash (metadata like position)
-    - 'file' as the binary upload (the actual image)
+    Shopify expects: image[position], image[filename], image[attachment]
     """
     url = f"{SHOPIFY_API}/products/{product_id}/images.json"
 
-    metadata = json.dumps({"position": 1})
     files = {
-        'image': (None, metadata, 'application/json'),
-        'file': (filename, image_data, 'image/png'),
+        'image[position]': (None, '1'),
+        'image[filename]': (None, filename),
+        'image[attachment]': (filename, image_data, 'image/png'),
     }
 
     resp = requests.post(url, headers=HEADERS, files=files, timeout=60)
