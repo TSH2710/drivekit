@@ -2707,8 +2707,16 @@ app.delete('/shopify/products/:id', async (c) => {
 
 // ── Swap Cover Images in Shopify ─────────────────────────────
 // GET /shopify/swap-cover-images — swaps image positions 1 & 2 for every product
+// Runs in background, returns immediately. Poll GET /shopify/swap-cover-images/status
+
+let swapJob: { running: boolean; startedAt: string; total: number; processed: number; updated: number; skipped: number; errors: number; results: Array<{ title: string; action: string }>; done: boolean; error?: string } | null = null
 
 app.get('/shopify/swap-cover-images', async (c) => {
+  if (swapJob?.running) {
+    return c.json({ ok: false, message: 'Swap already running', ...swapJob }, 202)
+  }
+
+  // Start background job
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
   const shopifyPutWithRetry = async (url: string, body: any, retries = 5): Promise<{ ok: boolean; status: number; body?: any }> => {
@@ -2722,7 +2730,6 @@ app.get('/shopify/swap-cover-images', async (c) => {
       })
       if (res.status === 429) {
         const wait = parseInt(res.headers.get('Retry-After') ?? '3') * 1000 + 1000
-        console.log(`[swap] Rate limited, waiting ${wait}ms...`)
         await sleep(wait)
         continue
       }
@@ -2732,59 +2739,72 @@ app.get('/shopify/swap-cover-images', async (c) => {
     return { ok: false, status: 429 }
   }
 
+  // Use cached products
+  let products: any[] = []
   try {
-    // Use cached products (avoids rate-limiting from paginated REST fetch)
-    let products: any[] = []
+    if (existsSync(CACHE_FILE)) {
+      products = JSON.parse(readFileSync(CACHE_FILE, 'utf-8')).products ?? []
+    }
+  } catch {}
+  if (products.length === 0) {
     try {
-      if (existsSync(CACHE_FILE)) {
-        products = JSON.parse(readFileSync(CACHE_FILE, 'utf-8')).products ?? []
-      }
-    } catch {}
-    if (products.length === 0) {
       const rawProducts = await fetchAllShopifyProducts()
       products = rawProducts.filter((p: any) => p.status === 'active')
+    } catch (err: any) {
+      return c.json({ error: err.message ?? 'Failed to fetch products' }, 500)
     }
-
-    const token = await ensureValidToken()
-    if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
-
-    let updated = 0
-    let skipped = 0
-    let errors = 0
-    const results: Array<{ title: string; action: string }> = []
-
-    for (const p of products) {
-      const images = (p.images ?? []).sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
-      if (images.length < 2) { skipped++; results.push({ title: p.title, action: 'skipped (< 2 images)' }); continue }
-
-      const img1 = images[0]
-      const img2 = images[1]
-
-      // Swap: set image 1 to position 2, image 2 to position 1
-      const res1 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img1.id}.json`, { image: { id: img1.id, position: 2 } })
-      if (!res1.ok) { errors++; results.push({ title: p.title, action: `error swapping img1: ${res1.status}` }); await sleep(2000); continue }
-
-      await sleep(600)
-
-      const res2 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img2.id}.json`, { image: { id: img2.id, position: 1 } })
-      if (!res2.ok) { errors++; results.push({ title: p.title, action: `error swapping img2: ${res2.status}` }); await sleep(2000); continue }
-
-      updated++
-      results.push({ title: p.title, action: `swapped (${img1.id} ↔ ${img2.id})` })
-      await sleep(600)
-    }
-
-    // Refresh cache after swapping
-    try {
-      const rawProducts = await fetchAllShopifyProducts()
-      const freshProducts = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
-      writeCache(freshProducts)
-    } catch {}
-
-    return c.json({ ok: true, total: products.length, updated, skipped, errors, results })
-  } catch (err: any) {
-    return c.json({ error: err.message ?? 'Swap failed' }, 500)
   }
+
+  swapJob = { running: true, startedAt: new Date().toISOString(), total: products.length, processed: 0, updated: 0, skipped: 0, errors: 0, results: [], done: false }
+
+  // Process in background
+  ;(async () => {
+    try {
+      for (const p of products) {
+        const images = (p.images ?? []).sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+        if (images.length < 2) { swapJob!.skipped++; swapJob!.results.push({ title: p.title, action: 'skipped (< 2 images)' }); swapJob!.processed++; continue }
+
+        const img1 = images[0]
+        const img2 = images[1]
+
+        const res1 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img1.id}.json`, { image: { id: img1.id, position: 2 } })
+        if (!res1.ok) { swapJob!.errors++; swapJob!.results.push({ title: p.title, action: `error img1: ${res1.status}` }); swapJob!.processed++; await sleep(1000); continue }
+
+        await sleep(500)
+
+        const res2 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img2.id}.json`, { image: { id: img2.id, position: 1 } })
+        if (!res2.ok) { swapJob!.errors++; swapJob!.results.push({ title: p.title, action: `error img2: ${res2.status}` }); swapJob!.processed++; await sleep(1000); continue }
+
+        swapJob!.updated++
+        swapJob!.results.push({ title: p.title, action: `swapped (${img1.id} ↔ ${img2.id})` })
+        swapJob!.processed++
+        await sleep(500)
+      }
+
+      // Refresh cache
+      try {
+        const rawProducts = await fetchAllShopifyProducts()
+        const freshProducts = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+        writeCache(freshProducts)
+      } catch {}
+
+      swapJob!.done = true
+      swapJob!.running = false
+      console.log(`[swap] Done: ${swapJob!.updated} updated, ${swapJob!.skipped} skipped, ${swapJob!.errors} errors out of ${swapJob!.total}`)
+    } catch (err: any) {
+      swapJob!.error = err.message
+      swapJob!.running = false
+      swapJob!.done = true
+      console.error(`[swap] Failed:`, err.message)
+    }
+  })()
+
+  return c.json({ ok: true, message: 'Swap started in background', total: products.length, pollAt: '/api/shopify/swap-cover-images/status' }, 202)
+})
+
+app.get('/shopify/swap-cover-images/status', async (c) => {
+  if (!swapJob) return c.json({ ok: true, message: 'No swap job found' })
+  return c.json({ ok: true, ...swapJob })
 })
 
 // ── Auto-Seed Owner Account ───────────────────────────────────
