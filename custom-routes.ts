@@ -2731,17 +2731,9 @@ app.get('/shopify/swap-cover-images', async (c) => {
   }
 
   try {
-    // Use cached products if available to avoid rate-limiting
-    let products: any[] = []
-    try {
-      if (existsSync(CACHE_FILE)) {
-        products = JSON.parse(readFileSync(CACHE_FILE, 'utf-8')).products ?? []
-      }
-    } catch {}
-    if (products.length === 0) {
-      const rawProducts = await fetchAllShopifyProducts()
-      products = rawProducts.filter((p: any) => p.status === 'active')
-    }
+    // Always fetch live from Shopify to get actual image positions
+    const rawProducts = await fetchAllShopifyProducts()
+    const products = rawProducts.filter((p: any) => p.status === 'active')
     const token = await ensureValidToken()
     if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
