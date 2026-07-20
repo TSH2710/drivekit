@@ -9,19 +9,7 @@ SHOPIFY_STORE = "dc5byu-fy.myshopify.com"
 SHOPIFY_API = f"https://{SHOPIFY_STORE}/admin/api/2024-10"
 
 # Get token from the server's token cache
-def get_token():
-    # Try the token file first
-    token_file = "/app/workspace/.shopify-cache/token-cache.json"
-    if os.path.exists(token_file):
-        with open(token_file) as f:
-            data = json.load(f)
-            token = data.get("accessToken", "")
-            if token:
-                return token
-    # Fallback: try the database via the server
-    return ""
-
-TOKEN = get_token()
+TOKEN = "SHOPIFY_TOKEN_REMOVED"
 if not TOKEN:
     print("ERROR: No Shopify token found")
     sys.exit(1)
