@@ -1,159 +1,190 @@
 #!/usr/bin/env python3
 """
-Assign correct Shopify product images to each variant.
-Product: 4-in-1 Non-Slip Phone Dash Mat (ID: 15089798545774)
-
-Based on visual analysis of all 35 product images.
+Assign variant images to Shopify products.
+For products with multiple variants, maps gallery images to variants in order.
 """
-import json
-import urllib.request
-import os
-import time
+import json, os, sys, time, requests
 
-SHOPIFY_STORE = os.environ.get("SHOPIFY_STORE", "dc5byu-fy")
-SHOPIFY_TOKEN = os.environ.get("SHOPIFY_ACCESS_TOKEN", "")
-API_BASE = f"https://{SHOPIFY_STORE}.myshopify.com/admin/api/2024-01"
+SHOPIFY_STORE = "dc5byu-fy.myshopify.com"
+SHOPIFY_API = f"https://{SHOPIFY_STORE}/admin/api/2024-10"
 
-# Image-to-variant mapping — verified against CJ Dropshipping Products Connection video
-# Format: variant_id -> image_id
-#
-# Key distinction from CJ video:
-#   "Red" = SOLID red accent lines + "BAVISS" branding (image 27/34 in CJ)
-#   "Red A" = DASHED/BROKEN red border lines (image 29/34 in CJ)
-#
-VARIANT_IMAGE_MAP = {
-    # ── Red: Solid red accent lines + "BAVISS" branding ──
-    # CJ image 27/34: rectangular mat, solid red border lines, "BAVISS" at top
-    54343583924590: 65606813712750,   # Red / 1PC → pos 4 (top-down BAVISS mat)
-    54343583957358: 65606814433646,   # Red / 2PCS → pos 26 (2pcs red mat top-down)
+TOKEN_FILE = "/tmp/shopify_token.txt"
+TOKEN = "SHOPIFY_TOKEN_REMOVED"
 
-    # ── White: White accent lines ──
-    54343583990126: 65606814597486,   # White / 1PC → pos 31 (white accent top-down)
-    54343584022894: 65606814237038,   # White / 2PCS → pos 20 (white 2pcs)
-
-    # ── Black: All-black, no colored accents ──
-    # CJ image 22/34: marketing picture, all black mat
-    54343584055662: 65606813843822,   # Black / 1PC → pos 8 (all-black mat)
-    54343584350574: 65606813843822,   # Black / 2PCS → pos 8 (reuse, no 2pcs black img)
-
-    # ── Red A: Dashed/broken red border lines (DIFFERENT from Red) ──
-    # CJ image 29/34: mat with dashed red border, parking numbers
-    54343584383342: 65606813745518,   # Red A / 1PC → pos 5 (dashed red border mat)
-    54343584416110: 65606813647214,   # Red A / 2PCS → pos 2 (dashed red mat collage)
-
-    # ── Cartoon: Colorful cartoon animal characters ──
-    54343584448878: 65606814007662,   # Cartoon / 1PC → pos 13 (cartoon oval mat)
-    54343584481646: 65606814073198,   # Cartoon / 2PCS → pos 15 (cartoon 2pcs)
-
-    # ── Chinese Dream: "中国梦 CHINESE DREAM" text in purple/red ──
-    # CJ image shows purple/red "中国梦" text on mat
-    54343584514414: 65606814531950,   # Chinese dream / 1PC → pos 29
-
-    # ── Safe Journey: "一路平安" text in pink/red + purple gradient ──
-    # CJ image 31/34: rectangular mat with "一路平安" + purple gradient
-    54343584579950: 65606814564718,   # Safe journey / 1PC → pos 30
-
-    # ── Single Bracket: Phone holder component only ──
-    # CJ image 32/34: black phone bracket with red accent rings
-    54343584612718: 65606814499182,   # Single bracket / 1PC → pos 28
-}
-
-# Also set correct retail prices
-VARIANT_PRICES = {
-    54343583924590: "9.99",    # Red / 1PC
-    54343583957358: "16.99",   # Red / 2PCS
-    54343583990126: "9.99",    # White / 1PC
-    54343584022894: "16.99",   # White / 2PCS
-    54343584055662: "9.99",    # Black / 1PC
-    54343584350574: "16.99",   # Black / 2PCS
-    54343584383342: "9.99",    # Red A / 1PC
-    54343584416110: "16.99",   # Red A / 2PCS
-    54343584448878: "9.99",    # Cartoon / 1PC
-    54343584481646: "16.99",   # Cartoon / 2PCS
-    54343584514414: "9.99",    # Chinese dream / 1PC
-    54343584579950: "9.99",    # Safe journey / 1PC
-    54343584612718: "9.99",    # Single bracket / 1PC
-}
-
-VARIANT_NAMES = {
-    54343583924590: "Red / 1PC",
-    54343583957358: "Red / 2PCS",
-    54343583990126: "White / 1PC",
-    54343584022894: "White / 2PCS",
-    54343584055662: "Black / 1PC",
-    54343584350574: "Black / 2PCS",
-    54343584383342: "Red A / 1PC",
-    54343584416110: "Red A / 2PCS",
-    54343584448878: "Cartoon / 1PC",
-    54343584481646: "Cartoon / 2PCS",
-    54343584514414: "Chinese dream / 1PC",
-    54343584579950: "Safe journey / 1PC",
-    54343584612718: "Single bracket / 1PC",
-}
+HEADERS = {"X-Shopify-Access-Token": TOKEN, "Content-Type": "application/json"}
 
 
-def patch_variant(token, variant_id, image_id, price):
-    """PATCH a single variant with new image and price."""
-    payload = json.dumps({
-        "variant": {
-            "id": variant_id,
-            "image_id": image_id,
-            "price": price,
-        }
-    }).encode()
+def get_products():
+    """Get products from the server cache."""
+    resp = requests.get("https://drivekit-production.up.railway.app/api/shopify/products", timeout=15)
+    data = resp.json()
+    return data.get("products", [])
 
-    req = urllib.request.Request(
-        f"{API_BASE}/variants/{variant_id}.json",
-        data=payload,
-        headers={
-            "X-Shopify-Access-Token": token,
-            "Content-Type": "application/json",
-        },
-        method="PATCH",
-    )
 
-    try:
-        with urllib.request.urlopen(req) as resp:
-            data = json.loads(resp.read())
-            return True, data
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        return False, f"HTTP {e.code}: {body[:200]}"
+def get_raw_product(product_id):
+    """Get raw Shopify product with image_id on variants."""
+    resp = requests.get(f"{SHOPIFY_API}/products/{product_id}.json", headers=HEADERS, timeout=30)
+    if not resp.ok:
+        return None
+    return resp.json().get("product", {})
+
+
+def update_variant_image(product_id, variant_id, image_id):
+    """Set image_id on a variant."""
+    url = f"{SHOPIFY_API}/products/{product_id}.json"
+    body = {"product": {"id": product_id, "variants": [{"id": variant_id, "image_id": image_id}]}}
+    resp = requests.put(url, headers=HEADERS, json=body, timeout=30)
+    if resp.status_code == 429:
+        retry = int(resp.headers.get("Retry-After", 5))
+        print(f"  Rate limited, waiting {retry}s...")
+        time.sleep(retry)
+        return update_variant_image(product_id, variant_id, image_id)
+    return resp
 
 
 def main():
-    if not SHOPIFY_TOKEN:
-        print("ERROR: SHOPIFY_ACCESS_TOKEN not set in environment")
-        print("Set it with: export SHOPIFY_ACCESS_TOKEN=shpat_...")
-        return 1
-
-    print("=" * 60)
-    print("Product Image Assignment — 4-in-1 Non-Slip Phone Dash Mat")
-    print("=" * 60)
+    dry_run = "--dry-run" in sys.argv
+    
+    products = get_products()
+    multi_variant_products = [
+        p for p in products
+        if len(p.get("variants", [])) > 1
+        and len(p.get("images", [])) > 2
+    ]
+    
+    print(f"Products with multiple variants and no image mapping: {len(multi_variant_products)}")
+    print(f"Mode: {'DRY RUN' if dry_run else 'LIVE'}")
     print()
+    
+    updated = 0
+    skipped = 0
+    errors = 0
+    
+    for p in multi_variant_products:
+        product_id = p["id"]
+        title = p["title"]
+        variants = p["variants"]
+        images = p["images"]
+        options = p.get("options", [])
+        
+        # Get the raw product to see actual image IDs and variant image IDs
+        raw = get_raw_product(product_id)
+        if not raw:
+            print(f"❌ {title} — could not fetch raw product")
+            errors += 1
+            continue
+        
+        raw_variants = raw.get("variants", [])
+        raw_images = raw.get("images", [])
+        
+        # Find variants that already have distinct image_ids set
+        image_ids = set(v.get("image_id") for v in raw_variants if v.get("image_id"))
+        all_distinct = len(image_ids) >= len(raw_variants)
+        if all_distinct:
+            print(f"⏭️  {title} — all {len(raw_variants)} variants already mapped")
+            skipped += 1
+            continue
+        
+        # Strategy: For variants without image_id, try to assign images in order
+        # Skip the first 2 images (cover + product shot), assign the rest to variants
+        # If there are more variants than remaining images, try to match by option name
+        
+        # Build a list of images that can be assigned (skip cover images)
+        available_images = [img for img in raw_images if img.get("position", 0) > 2]
+        
+        # If not enough, include position 2 image too
+        if len(available_images) < len(raw_variants):
+            available_images = [img for img in raw_images if img.get("position", 0) > 1]
+        
+        # Try to match by option name in image alt text or filename
+        unmapped_variants = [v for v in raw_variants if not v.get("image_id")]
+        
+        assignments = []
+        used_image_ids = set(v.get("image_id") for v in raw_variants if v.get("image_id"))
+        
+        for v in unmapped_variants:
+            variant_title = v.get("title", "").lower()
+            option1 = (v.get("option1") or "").lower()
+            option2 = (v.get("option2") or "").lower()
+            
+            # Try to find an image whose alt or filename matches the variant
+            best_match = None
+            for img in available_images:
+                img_id = img.get("id")
+                if img_id in used_image_ids:
+                    continue
+                img_alt = (img.get("alt") or "").lower()
+                img_src = (img.get("src") or "").lower()
+                
+                # Check if option name appears in alt text or filename
+                if option1 and len(option1) > 2:
+                    if option1 in img_alt or option1 in img_src:
+                        best_match = img
+                        break
+                if variant_title and len(variant_title) > 2:
+                    if variant_title in img_alt or variant_title in img_src:
+                        best_match = img
+                        break
+            
+            if best_match:
+                assignments.append((v, best_match))
+                used_image_ids.add(best_match.get("id"))
+        
+        # For remaining unmatched variants, assign in order
+        if len(assignments) < len(unmapped_variants):
+            assigned_variant_ids = {a[0]["id"] for a in assignments}
+            remaining_variants = [v for v in unmapped_variants if v["id"] not in assigned_variant_ids]
+            
+            for v in remaining_variants:
+                for img in available_images:
+                    img_id = img.get("id")
+                    if img_id not in used_image_ids:
+                        assignments.append((v, img))
+                        used_image_ids.add(img_id)
+                        break
+        
+        if not assignments:
+            print(f"⏭️  {title} — no images available to assign")
+            skipped += 1
+            continue
+        
+        print(f"📦 {title} ({len(assignments)} variants to map)")
+        for v, img in assignments:
+            v_title = v.get("title", "?")
+            img_pos = img.get("position", "?")
+            img_id = img.get("id", "?")
+            print(f"  {v_title} → image #{img_pos} (id={img_id})")
+        
+        if dry_run:
+            skipped += 1
+            continue
+        
+        # Apply assignments one variant at a time via /variants/{id}.json
+        for v, img in assignments:
+            body = {"variant": {"id": v["id"], "image_id": img["id"]}}
+            resp = requests.put(f"{SHOPIFY_API}/variants/{v['id']}.json", headers=HEADERS, json=body, timeout=30)
+            if resp.status_code == 429:
+                retry = int(resp.headers.get("Retry-After", 5))
+                print(f"  Rate limited, waiting {retry}s...")
+                time.sleep(retry)
+                resp = requests.put(f"{SHOPIFY_API}/variants/{v['id']}.json", headers=HEADERS, json=body, timeout=30)
+            if resp.ok:
+                print(f"  ✅ Set {v['title']} → image {img['id']}")
+                updated += 1
+            else:
+                print(f"  ❌ Failed {v['title']}: {resp.status_code} {resp.text[:150]}")
+                errors += 1
+            time.sleep(0.6)
 
-    success = 0
-    failed = 0
-
-    for variant_id, image_id in VARIANT_IMAGE_MAP.items():
-        name = VARIANT_NAMES[variant_id]
-        price = VARIANT_PRICES[variant_id]
-
-        ok, result = patch_variant(SHOPIFY_TOKEN, variant_id, image_id, price)
-
-        if ok:
-            success += 1
-            print(f"  ✅ {name:25s} → image {image_id}, price ${price}")
-        else:
-            failed += 1
-            print(f"  ❌ {name:25s} → FAILED: {result}")
-
-        time.sleep(0.35)  # rate limit
-
-    print()
-    print(f"Done: {success} succeeded, {failed} failed, {len(VARIANT_IMAGE_MAP)} total")
-    return 0 if failed == 0 else 1
+        print()
+    
+    print(f"{'='*60}")
+    print(f"Results:")
+    print(f"  Updated: {updated}")
+    print(f"  Skipped: {skipped}")
+    print(f"  Errors: {errors}")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":
-    exit(main())
+    main()
