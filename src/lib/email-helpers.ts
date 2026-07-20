@@ -61,7 +61,12 @@ export async function sendEmail(to: string, subject: string, html: string, type 
     return { ok: false, error: 'Email not configured (set RESEND_API_KEY in .env)' }
   }
   try {
-    const { Resend } = await import('resend')
+    let Resend: any
+    try { ({ Resend } = await import('resend')) } catch { Resend = null }
+    if (!Resend) {
+      console.log(`[email] resend package not installed — skipping ${type} email to ${to}`)
+      return { ok: false, error: 'Email package not installed' }
+    }
     const resend = new Resend(config.apiKey)
     const fromAddress = config.from.includes('<') ? config.from : `DriveKit <${config.from}>`
     await resend.emails.send({ from: fromAddress, to, subject, html })
