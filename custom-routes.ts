@@ -2451,6 +2451,69 @@ app.get('/shopify/retag-batches', async (c) => {
   }
 })
 
+// ── Swap Cover Images in Shopify ─────────────────────────────
+// GET /shopify/swap-cover-images — swaps image positions 1 & 2 for every product
+
+app.get('/shopify/swap-cover-images', async (c) => {
+  try {
+    const rawProducts = await fetchAllShopifyProducts()
+    const active = rawProducts.filter((p: any) => p.status === 'active')
+    const token = await ensureValidToken()
+    if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+    let updated = 0
+    let skipped = 0
+    let errors = 0
+    const results: Array<{ title: string; action: string }> = []
+
+    for (const p of active) {
+      const pp = p as any
+      const images = (pp.images ?? []).sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+      if (images.length < 2) { skipped++; results.push({ title: pp.title, action: 'skipped (< 2 images)' }); continue }
+
+      const img1 = images[0]
+      const img2 = images[1]
+
+      try {
+        // Swap: set image 1 to position 2, image 2 to position 1
+        const res1 = await fetch(`${SHOPIFY_API}/products/${pp.id}/images/${img1.id}.json`, {
+          method: 'PUT',
+          headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: { id: img1.id, position: 2 } }),
+        })
+        if (!res1.ok) { errors++; results.push({ title: pp.title, action: `error swapping img1: ${res1.status}` }); continue }
+
+        await new Promise(r => setTimeout(r, 500))
+
+        const res2 = await fetch(`${SHOPIFY_API}/products/${pp.id}/images/${img2.id}.json`, {
+          method: 'PUT',
+          headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: { id: img2.id, position: 1 } }),
+        })
+        if (!res2.ok) { errors++; results.push({ title: pp.title, action: `error swapping img2: ${res2.status}` }); continue }
+
+        updated++
+        results.push({ title: pp.title, action: `swapped image positions (${img1.id} ↔ ${img2.id})` })
+        await new Promise(r => setTimeout(r, 500))
+      } catch (err: any) {
+        errors++
+        results.push({ title: pp.title, action: `error: ${err.message}` })
+      }
+    }
+
+    // Refresh cache so DriveKit site picks up the new order
+    try {
+      const freshProducts = await fetchAllShopifyProducts()
+      const shaped = freshProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+      writeCache(shaped)
+    } catch {}
+
+    return c.json({ ok: true, total: active.length, updated, skipped, errors, results })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Swap failed' }, 500)
+  }
+})
+
 // ── Auto-Seed Owner Account ───────────────────────────────────
 ;(async () => {
   try {
