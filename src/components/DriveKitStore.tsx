@@ -1576,7 +1576,7 @@ export default function DriveKitStore() {
     }).catch(() => {})
   }, [])
 
-  const filteredProducts = (() => {
+  const filteredProducts = useMemo(() => {
     let list = products.filter((p) => !p.hidden)
     if (activeCategory === 'Trending Now') list = [...list].sort(() => Math.random() - 0.5).slice(0, 12)
     else if (activeCategory === 'Best Sellers') list = [...list].sort((a, b) => { const aInv = a.variants.reduce((s, v) => s + v.inventoryQuantity, 0); const bInv = b.variants.reduce((s, v) => s + v.inventoryQuantity, 0); if (aInv !== bInv) return bInv - aInv; return (allReviewStats[String(b.id)]?.count ?? 0) - (allReviewStats[String(a.id)]?.count ?? 0) }).slice(0, 15)
@@ -1624,7 +1624,7 @@ export default function DriveKitStore() {
         return words.every((w) => haystack.includes(w)) || fuzzyMatch(q, haystack)
       }
     )
-  })()
+  }, [products, activeCategory, allReviewStats, priceRange, vendorFilter, inStockOnly, ratingFilter, sortBy, searchQuery])
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE))
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE)
