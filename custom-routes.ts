@@ -2502,6 +2502,187 @@ app.post('/shopify/delete-variant', async (c) => {
   }
 })
 
+// ── Add Variants to Existing Product (no delete) ────────────────
+// POST /shopify/add-variants — adds new variants to a product without removing existing ones
+
+app.post('/shopify/add-variants', async (c) => {
+  const body = await c.req.json<{
+    productId?: string
+    options?: Array<{ name: string; values: string[] }>
+    variants?: Array<{ optionValues: Record<string, string>; price: string; sku: string }>
+  }>()
+  const { productId, options, variants } = body
+
+  if (!productId || !options?.length || !variants?.length) {
+    return c.json({ error: 'Missing productId, options, or variants' }, 400)
+  }
+
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+  const steps: string[] = []
+
+  const gql = async (query: string, variables?: any) => {
+    const res = await fetch(`${SHOPIFY_API}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+      body: JSON.stringify({ query, variables }),
+    })
+    const data = await res.json() as any
+    if (data.errors?.length) throw new Error(data.errors[0].message)
+    return data.data
+  }
+
+  const restPost = async (path: string, data: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'POST',
+      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const text = await res.text()
+    if (!res.ok) throw new Error(`REST POST ${res.status}: ${text.slice(0, 300)}`)
+    return JSON.parse(text)
+  }
+
+  try {
+    // Step 1: Fetch current product via GraphQL to see existing options
+    const gqlProductId = `gid://shopify/Product/${productId}`
+    const productData = await gql(`
+      query($id: ID!) {
+        product(id: $id) {
+          id title handle
+          options { id name values }
+          variants(first: 50) { edges { node { id title } } }
+        }
+      }
+    `, { id: gqlProductId })
+
+    const product = productData.product
+    if (!product) return c.json({ error: 'Product not found' }, 404)
+
+    const existingOptionNames = product.options.map((o: any) => o.name)
+    steps.push(`Existing options: ${existingOptionNames.join(', ')}`)
+    steps.push(`Existing variants: ${product.variants.edges.length}`)
+
+    // Step 2: Add missing options via GraphQL
+    for (const opt of options) {
+      if (!existingOptionNames.includes(opt.name)) {
+        const addOptRes = await gql(`
+          mutation productOptionCreate($productId: ID!, $option: ProductOptionInput!) {
+            productOptionCreate(productId: $productId, option: $option) {
+              product { id options { name values } }
+              userErrors { field message }
+            }
+          }
+        `, {
+          productId: gqlProductId,
+          option: { name: opt.name, values: opt.values.map(v => ({ name: v })) },
+        })
+        const errors = addOptRes.productOptionCreate?.userErrors ?? []
+        if (errors.length) {
+          steps.push(`Error adding option "${opt.name}": ${errors[0].message}`)
+        } else {
+          steps.push(`Added option "${opt.name}" with values: ${opt.values.join(', ')}`)
+        }
+        await sleep(500)
+      } else {
+        // Option exists — check if we need to add new values
+        const existingOpt = product.options.find((o: any) => o.name === opt.name)
+        const existingValues = existingOpt?.values ?? []
+        const newValues = opt.values.filter((v: string) => !existingValues.includes(v))
+        if (newValues.length > 0) {
+          // Add missing option values
+          for (const val of newValues) {
+            const addValRes = await gql(`
+              mutation productOptionUpdate($productId: ID!, $option: ProductOptionInput!) {
+                productOptionUpdate(productId: $productId, option: $option) {
+                  product { id options { name values } }
+                  userErrors { field message }
+                }
+              }
+            `, {
+              productId: gqlProductId,
+              option: { name: opt.name, values: [...existingValues, val].map(v => ({ name: v })) },
+            })
+            const errors = addValRes.productOptionUpdate?.userErrors ?? []
+            if (errors.length) {
+              steps.push(`Error adding value "${val}" to "${opt.name}": ${errors[0].message}`)
+            } else {
+              steps.push(`Added value "${val}" to option "${opt.name}"`)
+            }
+            existingValues.push(val)
+            await sleep(500)
+          }
+        } else {
+          steps.push(`Option "${opt.name}" already has all required values`)
+        }
+      }
+    }
+
+    // Step 3: Fetch updated product to get option IDs
+    const updatedProductData = await gql(`
+      query($id: ID!) {
+        product(id: $id) {
+          id options { id name values }
+        }
+      }
+    `, { id: gqlProductId })
+    const updatedProduct = updatedProductData.product
+
+    // Build option name → position map (option1 = first option, option2 = second, etc.)
+    const optionPosition: Record<string, string> = {}
+    updatedProduct.options.forEach((o: any, i: number) => {
+      optionPosition[o.name] = `option${i + 1}`
+    })
+
+    // Step 4: Create each variant via REST
+    let created = 0
+    let skipped = 0
+    for (const v of variants) {
+      const variantPayload: any = {
+        product_id: parseInt(productId),
+        price: v.price,
+        sku: v.sku || '',
+        inventory_policy: 'deny',
+      }
+
+      for (const [optName, optValue] of Object.entries(v.optionValues)) {
+        const pos = optionPosition[optName]
+        if (pos) variantPayload[pos] = optValue
+      }
+
+      try {
+        await restPost(`/products/${productId}/variants.json`, { variant: variantPayload })
+        const label = Object.values(v.optionValues).join(' / ')
+        steps.push(`✅ Created: ${label} — $${v.price} (SKU: ${v.sku})`)
+        created++
+      } catch (err: any) {
+        if (err.message?.includes('422') || err.message?.includes('has already been taken')) {
+          steps.push(`⏭️ Skipped (already exists): ${Object.values(v.optionValues).join(' / ')}`)
+          skipped++
+        } else {
+          steps.push(`❌ Failed: ${Object.values(v.optionValues).join(' / ')} — ${err.message}`)
+        }
+      }
+      await sleep(400)
+    }
+
+    // Step 5: Refresh cache
+    try {
+      const rawProducts = await fetchAllShopifyProducts()
+      const products = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+      writeCache(products)
+      steps.push('Cache refreshed')
+    } catch { steps.push('Cache refresh skipped') }
+
+    return c.json({ ok: true, created, skipped, total: variants.length, steps })
+  } catch (err: any) {
+    steps.push(`Error: ${err.message}`)
+    return c.json({ ok: false, error: err.message, steps }, 500)
+  }
+})
+
 // ── Swap Cover Images in Shopify ─────────────────────────────
 // GET /shopify/swap-cover-images — swaps image positions 1 & 2 for every product
 
