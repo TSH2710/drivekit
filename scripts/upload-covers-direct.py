@@ -89,19 +89,27 @@ def download_from_gdrive(file_id):
 
 
 def upload_to_shopify(product_id, image_data, filename):
-    """Upload an image to a Shopify product using multipart file upload."""
+    """Upload an image to a Shopify product using multipart form.
+
+    Shopify REST API expects:
+    - 'image' as a JSON hash (metadata like position)
+    - 'file' as the binary upload (the actual image)
+    """
     url = f"{SHOPIFY_API}/products/{product_id}/images.json"
-    
-    # Use requests' built-in file upload which handles multipart correctly
-    files = {'image': (filename, image_data, 'image/png')}
-    
+
+    metadata = json.dumps({"position": 1})
+    files = {
+        'image': (None, metadata, 'application/json'),
+        'file': (filename, image_data, 'image/png'),
+    }
+
     resp = requests.post(url, headers=HEADERS, files=files, timeout=60)
     if resp.status_code == 429:
         retry_after = int(resp.headers.get('Retry-After', 5))
         print(f"  Rate limited, waiting {retry_after}s...")
         time.sleep(retry_after)
         return upload_to_shopify(product_id, image_data, filename)
-    
+
     return resp
 
 
