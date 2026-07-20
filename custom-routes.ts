@@ -2504,6 +2504,7 @@ app.post('/shopify/delete-variant', async (c) => {
 
 // ── Add Variants to Existing Product (no delete) ────────────────
 // POST /shopify/add-variants — adds new variants to a product without removing existing ones
+// Uses REST API only (no GraphQL mutations)
 
 app.post('/shopify/add-variants', async (c) => {
   const body = await c.req.json<{
@@ -2523,120 +2524,86 @@ app.post('/shopify/add-variants', async (c) => {
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
   const steps: string[] = []
 
-  const gql = async (query: string, variables?: any) => {
-    const res = await fetch(`${SHOPIFY_API}/graphql.json`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
-      body: JSON.stringify({ query, variables }),
+  const shopifyGet = async (path: string) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      headers: { 'X-Shopify-Access-Token': token },
     })
-    const data = await res.json() as any
-    if (data.errors?.length) throw new Error(data.errors[0].message)
-    return data.data
+    const text = await res.text()
+    if (!res.ok) throw new Error(`GET ${res.status}: ${text.slice(0, 300)}`)
+    return JSON.parse(text)
   }
 
-  const restPost = async (path: string, data: any) => {
+  const shopifyPut = async (path: string, data: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'PUT',
+      headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const text = await res.text()
+    if (!res.ok) throw new Error(`PUT ${res.status}: ${text.slice(0, 300)}`)
+    return JSON.parse(text)
+  }
+
+  const shopifyPost = async (path: string, data: any) => {
     const res = await fetch(`${SHOPIFY_API}${path}`, {
       method: 'POST',
       headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
     const text = await res.text()
-    if (!res.ok) throw new Error(`REST POST ${res.status}: ${text.slice(0, 300)}`)
+    if (!res.ok) throw new Error(`POST ${res.status}: ${text.slice(0, 300)}`)
     return JSON.parse(text)
   }
 
   try {
-    // Step 1: Fetch current product via GraphQL to see existing options
-    const gqlProductId = `gid://shopify/Product/${productId}`
-    const productData = await gql(`
-      query($id: ID!) {
-        product(id: $id) {
-          id title handle
-          options { id name values }
-          variants(first: 50) { edges { node { id title } } }
-        }
-      }
-    `, { id: gqlProductId })
-
+    // Step 1: Fetch current product via REST to see existing options
+    const productData = await shopifyGet(`/products/${productId}.json`)
     const product = productData.product
     if (!product) return c.json({ error: 'Product not found' }, 404)
 
-    const existingOptionNames = product.options.map((o: any) => o.name)
-    steps.push(`Existing options: ${existingOptionNames.join(', ')}`)
-    steps.push(`Existing variants: ${product.variants.edges.length}`)
+    const existingOptions: Array<{ name: string; values: string[] }> = product.options ?? []
+    steps.push(`Existing options: ${existingOptions.map(o => o.name).join(', ')}`)
+    steps.push(`Existing variants: ${product.variants?.length ?? 0}`)
 
-    // Step 2: Add missing options via GraphQL
+    // Step 2: Build merged options array (add missing values)
+    const mergedOptions: Array<{ name: string; values: string[] }> = JSON.parse(JSON.stringify(existingOptions))
+
     for (const opt of options) {
-      if (!existingOptionNames.includes(opt.name)) {
-        const addOptRes = await gql(`
-          mutation productOptionCreate($productId: ID!, $option: ProductOptionInput!) {
-            productOptionCreate(productId: $productId, option: $option) {
-              product { id options { name values } }
-              userErrors { field message }
-            }
-          }
-        `, {
-          productId: gqlProductId,
-          option: { name: opt.name, values: opt.values.map(v => ({ name: v })) },
-        })
-        const errors = addOptRes.productOptionCreate?.userErrors ?? []
-        if (errors.length) {
-          steps.push(`Error adding option "${opt.name}": ${errors[0].message}`)
-        } else {
-          steps.push(`Added option "${opt.name}" with values: ${opt.values.join(', ')}`)
-        }
-        await sleep(500)
+      const existing = mergedOptions.find(o => o.name === opt.name)
+      if (!existing) {
+        // Brand new option — add it with all values
+        mergedOptions.push({ name: opt.name, values: [...opt.values] })
+        steps.push(`Added new option "${opt.name}" with values: ${opt.values.join(', ')}`)
       } else {
-        // Option exists — check if we need to add new values
-        const existingOpt = product.options.find((o: any) => o.name === opt.name)
-        const existingValues = existingOpt?.values ?? []
-        const newValues = opt.values.filter((v: string) => !existingValues.includes(v))
-        if (newValues.length > 0) {
-          // Add missing option values
-          for (const val of newValues) {
-            const addValRes = await gql(`
-              mutation productOptionUpdate($productId: ID!, $option: ProductOptionInput!) {
-                productOptionUpdate(productId: $productId, option: $option) {
-                  product { id options { name values } }
-                  userErrors { field message }
-                }
-              }
-            `, {
-              productId: gqlProductId,
-              option: { name: opt.name, values: [...existingValues, val].map(v => ({ name: v })) },
-            })
-            const errors = addValRes.productOptionUpdate?.userErrors ?? []
-            if (errors.length) {
-              steps.push(`Error adding value "${val}" to "${opt.name}": ${errors[0].message}`)
-            } else {
-              steps.push(`Added value "${val}" to option "${opt.name}"`)
-            }
-            existingValues.push(val)
-            await sleep(500)
-          }
+        // Option exists — merge new values in
+        const newVals = opt.values.filter(v => !existing.values.includes(v))
+        if (newVals.length > 0) {
+          existing.values.push(...newVals)
+          steps.push(`Added values [${newVals.join(', ')}] to "${opt.name}"`)
         } else {
           steps.push(`Option "${opt.name}" already has all required values`)
         }
       }
     }
 
-    // Step 3: Fetch updated product to get option IDs
-    const updatedProductData = await gql(`
-      query($id: ID!) {
-        product(id: $id) {
-          id options { id name values }
-        }
-      }
-    `, { id: gqlProductId })
-    const updatedProduct = updatedProductData.product
+    // Step 3: Update product options via REST PUT
+    // This adds option values without touching existing variants
+    await shopifyPut(`/products/${productId}.json`, {
+      product: {
+        id: parseInt(productId),
+        options: mergedOptions.map(o => ({ name: o.name, values: o.values })),
+      },
+    })
+    steps.push(`Updated product options: ${mergedOptions.map(o => o.name).join(' + ')}`)
+    await sleep(500)
 
-    // Build option name → position map (option1 = first option, option2 = second, etc.)
+    // Step 4: Build option name → position map from merged options
     const optionPosition: Record<string, string> = {}
-    updatedProduct.options.forEach((o: any, i: number) => {
+    mergedOptions.forEach((o, i) => {
       optionPosition[o.name] = `option${i + 1}`
     })
 
-    // Step 4: Create each variant via REST
+    // Step 5: Create each variant via REST POST
     let created = 0
     let skipped = 0
     for (const v of variants) {
@@ -2653,7 +2620,7 @@ app.post('/shopify/add-variants', async (c) => {
       }
 
       try {
-        await restPost(`/products/${productId}/variants.json`, { variant: variantPayload })
+        await shopifyPost(`/products/${productId}/variants.json`, { variant: variantPayload })
         const label = Object.values(v.optionValues).join(' / ')
         steps.push(`✅ Created: ${label} — $${v.price} (SKU: ${v.sku})`)
         created++
@@ -2668,7 +2635,7 @@ app.post('/shopify/add-variants', async (c) => {
       await sleep(400)
     }
 
-    // Step 5: Refresh cache
+    // Step 6: Refresh cache
     try {
       const rawProducts = await fetchAllShopifyProducts()
       const products = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
