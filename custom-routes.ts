@@ -2451,6 +2451,57 @@ app.get('/shopify/retag-batches', async (c) => {
   }
 })
 
+// ── Delete Specific Variant ──────────────────────────────────
+// POST /shopify/delete-variant — deletes a single variant by product ID and variant title
+
+app.post('/shopify/delete-variant', async (c) => {
+  const body = await c.req.json<{ productId?: string; variantTitle?: string }>()
+  const { productId, variantTitle } = body
+
+  if (!productId || !variantTitle) return c.json({ error: 'Missing productId or variantTitle' }, 400)
+
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  try {
+    // Fetch the product to find the variant
+    const prodRes = await fetch(`${SHOPIFY_API}/products/${productId}.json`, {
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    if (!prodRes.ok) return c.json({ error: `Failed to fetch product: ${prodRes.status}` }, 502)
+    const { product } = await prodRes.json() as any
+
+    const variant = product.variants.find((v: any) => v.title === variantTitle)
+    if (!variant) return c.json({ error: `Variant "${variantTitle}" not found`, available: product.variants.map((v: any) => v.title) }, 404)
+
+    // Delete the variant
+    const delRes = await fetch(`${SHOPIFY_API}/products/${productId}/variants/${variant.id}.json`, {
+      method: 'DELETE',
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    if (!delRes.ok) {
+      const errText = await delRes.text()
+      return c.json({ error: `Delete failed (${delRes.status}): ${errText.slice(0, 200)}` }, 502)
+    }
+
+    // Refresh cache
+    try {
+      const rawProducts = await fetchAllShopifyProducts()
+      const shaped = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+      writeCache(shaped)
+    } catch {}
+
+    const remaining = product.variants.filter((v: any) => v.title !== variantTitle)
+    return c.json({
+      ok: true,
+      deleted: { title: variant.title, id: variant.id },
+      remaining: remaining.map((v: any) => v.title),
+    })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Delete variant failed' }, 500)
+  }
+})
+
 // ── Swap Cover Images in Shopify ─────────────────────────────
 // GET /shopify/swap-cover-images — swaps image positions 1 & 2 for every product
 
