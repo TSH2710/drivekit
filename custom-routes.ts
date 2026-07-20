@@ -2664,6 +2664,47 @@ app.post('/shopify/add-variants', async (c) => {
   }
 })
 
+// ── Delete Product from Shopify ────────────────────────────────
+// DELETE /shopify/products/:id — permanently deletes a product
+
+app.delete('/shopify/products/:id', async (c) => {
+  const productId = c.req.param('id')
+  if (!productId) return c.json({ error: 'Missing product ID' }, 400)
+
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  try {
+    // Fetch product first to confirm it exists and get the title
+    const prodRes = await fetch(`${SHOPIFY_API}/products/${productId}.json`, {
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    if (!prodRes.ok) return c.json({ error: `Product not found (${prodRes.status})` }, 404)
+    const { product } = await prodRes.json() as any
+
+    // Delete the product
+    const delRes = await fetch(`${SHOPIFY_API}/products/${productId}.json`, {
+      method: 'DELETE',
+      headers: { 'X-Shopify-Access-Token': token },
+    })
+    if (!delRes.ok) {
+      const errText = await delRes.text()
+      return c.json({ error: `Delete failed (${delRes.status}): ${errText.slice(0, 200)}` }, 502)
+    }
+
+    // Refresh cache
+    try {
+      const rawProducts = await fetchAllShopifyProducts()
+      const shaped = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+      writeCache(shaped)
+    } catch {}
+
+    return c.json({ ok: true, deleted: { id: productId, title: product.title } })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Delete product failed' }, 500)
+  }
+})
+
 // ── Swap Cover Images in Shopify ─────────────────────────────
 // GET /shopify/swap-cover-images — swaps image positions 1 & 2 for every product
 
