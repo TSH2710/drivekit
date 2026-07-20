@@ -2562,77 +2562,91 @@ app.post('/shopify/add-variants', async (c) => {
     if (!product) return c.json({ error: 'Product not found' }, 404)
 
     const existingOptions: Array<{ name: string; values: string[] }> = product.options ?? []
-    steps.push(`Existing options: ${existingOptions.map(o => o.name).join(', ')}`)
-    steps.push(`Existing variants: ${product.variants?.length ?? 0}`)
+    const existingVariants: Array<any> = product.variants ?? []
+    steps.push(`Existing options: ${existingOptions.map(o => `"${o.name}" [${o.values.join(', ')}]`).join(', ')}`)
+    steps.push(`Existing variants: ${existingVariants.length}`)
 
-    // Step 2: Build merged options array (add missing values)
+    // Step 2: Match incoming options to existing (case-insensitive) and merge values
     const mergedOptions: Array<{ name: string; values: string[] }> = JSON.parse(JSON.stringify(existingOptions))
 
     for (const opt of options) {
-      const existing = mergedOptions.find(o => o.name === opt.name)
+      // Case-insensitive match against existing options
+      const existing = mergedOptions.find(o => o.name.toLowerCase() === opt.name.toLowerCase())
       if (!existing) {
-        // Brand new option — add it with all values
         mergedOptions.push({ name: opt.name, values: [...opt.values] })
         steps.push(`Added new option "${opt.name}" with values: ${opt.values.join(', ')}`)
       } else {
-        // Option exists — merge new values in
+        // Use the existing option's canonical name
         const newVals = opt.values.filter(v => !existing.values.includes(v))
         if (newVals.length > 0) {
           existing.values.push(...newVals)
-          steps.push(`Added values [${newVals.join(', ')}] to "${opt.name}"`)
+          steps.push(`Added values [${newVals.join(', ')}] to "${existing.name}"`)
         } else {
-          steps.push(`Option "${opt.name}" already has all required values`)
+          steps.push(`Option "${existing.name}" already has all required values`)
         }
       }
     }
 
-    // Step 3: Update product options via REST PUT
-    // This adds option values without touching existing variants
+    // Step 3: Build option name → position map from merged options
+    const optionPosition: Record<string, string> = {}
+    mergedOptions.forEach((o, i) => {
+      optionPosition[o.name.toLowerCase()] = `option${i + 1}`
+    })
+
+    // Step 4: Build variant payloads for ALL variants (existing + new)
+    // Shopify REST requires variant data when updating options
+    const existingVariantPayloads = existingVariants.map((v: any) => {
+      const payload: any = { id: v.id, price: v.price, sku: v.sku || '' }
+      // Map existing variant's option values to the new option positions
+      for (let i = 1; i <= 3; i++) {
+        const optKey = `option${i}`
+        if (v[optKey]) payload[optKey] = v[optKey]
+      }
+      return payload
+    })
+
+    // Build payloads for new variants
+    const newVariantPayloads: any[] = []
+    for (const v of variants) {
+      const payload: any = { price: v.price, sku: v.sku || '', inventory_policy: 'deny' }
+      for (const [optName, optValue] of Object.entries(v.optionValues)) {
+        const pos = optionPosition[optName.toLowerCase()]
+        if (pos) payload[pos] = optValue
+      }
+      newVariantPayloads.push(payload)
+    }
+
+    // Step 5: Update product with merged options + ALL variants (existing + new)
+    const allVariantPayloads = [...existingVariantPayloads, ...newVariantPayloads]
     await shopifyPut(`/products/${productId}.json`, {
       product: {
         id: parseInt(productId),
         options: mergedOptions.map(o => ({ name: o.name, values: o.values })),
+        variants: allVariantPayloads,
       },
     })
-    steps.push(`Updated product options: ${mergedOptions.map(o => o.name).join(' + ')}`)
+    steps.push(`Updated product with ${mergedOptions.length} options and ${allVariantPayloads.length} variants (${existingVariants.length} existing + ${newVariantPayloads.length} new)`)
     await sleep(500)
 
-    // Step 4: Build option name → position map from merged options
-    const optionPosition: Record<string, string> = {}
-    mergedOptions.forEach((o, i) => {
-      optionPosition[o.name] = `option${i + 1}`
-    })
-
-    // Step 5: Create each variant via REST POST
-    let created = 0
+    let created = newVariantPayloads.length
     let skipped = 0
+
+    // Check for any skipped variants (already existed)
     for (const v of variants) {
-      const variantPayload: any = {
-        product_id: parseInt(productId),
-        price: v.price,
-        sku: v.sku || '',
-        inventory_policy: 'deny',
-      }
-
-      for (const [optName, optValue] of Object.entries(v.optionValues)) {
-        const pos = optionPosition[optName]
-        if (pos) variantPayload[pos] = optValue
-      }
-
-      try {
-        await shopifyPost(`/products/${productId}/variants.json`, { variant: variantPayload })
-        const label = Object.values(v.optionValues).join(' / ')
+      const label = Object.values(v.optionValues).join(' / ')
+      const alreadyExisted = existingVariants.some((ev: any) => {
+        return Object.entries(v.optionValues).every(([optName, optValue]) => {
+          const pos = optionPosition[optName.toLowerCase()]
+          return pos && ev[pos] === optValue
+        })
+      })
+      if (alreadyExisted) {
+        steps.push(`⏭️ Already existed: ${label}`)
+        skipped++
+        created--
+      } else {
         steps.push(`✅ Created: ${label} — $${v.price} (SKU: ${v.sku})`)
-        created++
-      } catch (err: any) {
-        if (err.message?.includes('422') || err.message?.includes('has already been taken')) {
-          steps.push(`⏭️ Skipped (already exists): ${Object.values(v.optionValues).join(' / ')}`)
-          skipped++
-        } else {
-          steps.push(`❌ Failed: ${Object.values(v.optionValues).join(' / ')} — ${err.message}`)
-        }
       }
-      await sleep(400)
     }
 
     // Step 6: Refresh cache
