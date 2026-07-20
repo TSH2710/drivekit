@@ -2714,13 +2714,15 @@ app.get('/shopify/swap-cover-images', async (c) => {
   const shopifyPutWithRetry = async (url: string, body: any, retries = 5): Promise<{ ok: boolean; status: number; body?: any }> => {
     for (let attempt = 0; attempt < retries; attempt++) {
       const token = await ensureValidToken()
+      if (!token) return { ok: false, status: 401 }
       const res = await fetch(url, {
         method: 'PUT',
-        headers: { 'X-Shopify-Access-Token': token!, 'Content-Type': 'application/json' },
+        headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
       if (res.status === 429) {
-        const wait = parseInt(res.headers.get('Retry-After') ?? '2') * 1000 + 500
+        const wait = parseInt(res.headers.get('Retry-After') ?? '3') * 1000 + 1000
+        console.log(`[swap] Rate limited, waiting ${wait}ms...`)
         await sleep(wait)
         continue
       }
@@ -2731,92 +2733,55 @@ app.get('/shopify/swap-cover-images', async (c) => {
   }
 
   try {
-    // Use GraphQL to fetch ALL products with images in a single call (avoids rate limits from paginated REST)
-    const token = await ensureValidToken()
-    if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
-
-    const gqlQuery = `{
-      products(first: 250) {
-        edges {
-          node {
-            id
-            title
-            status
-            images(first: 5) {
-              edges {
-                node {
-                  id
-                  position
-                  src
-                }
-              }
-            }
-          }
-        }
+    // Use cached products (avoids rate-limiting from paginated REST fetch)
+    let products: any[] = []
+    try {
+      if (existsSync(CACHE_FILE)) {
+        products = JSON.parse(readFileSync(CACHE_FILE, 'utf-8')).products ?? []
       }
-    }`
-
-    const gqlRes = await fetch(`${SHOPIFY_API}/graphql.json`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
-      body: JSON.stringify({ query: gqlQuery }),
-    })
-
-    if (!gqlRes.ok) {
-      const errText = await gqlRes.text()
-      return c.json({ error: `GraphQL query failed (${gqlRes.status}): ${errText.slice(0, 300)}` }, 502)
+    } catch {}
+    if (products.length === 0) {
+      const rawProducts = await fetchAllShopifyProducts()
+      products = rawProducts.filter((p: any) => p.status === 'active')
     }
 
-    const gqlData = await gqlRes.json() as any
-    const allProductEdges = gqlData?.data?.products?.edges ?? []
-    const productEdges = allProductEdges.filter((e: any) => e.node.status === 'ACTIVE')
+    const token = await ensureValidToken()
+    if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
     let updated = 0
     let skipped = 0
     let errors = 0
     const results: Array<{ title: string; action: string }> = []
 
-    for (const pe of productEdges) {
-      const p = pe.node
-      const imageEdges = p.images?.edges ?? []
-      if (imageEdges.length < 2) {
-        skipped++
-        results.push({ title: p.title, action: 'skipped (< 2 images)' })
-        continue
-      }
+    for (const p of products) {
+      const images = (p.images ?? []).sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+      if (images.length < 2) { skipped++; results.push({ title: p.title, action: 'skipped (< 2 images)' }); continue }
 
-      // Sort by position
-      const images = imageEdges
-        .map((e: any) => ({ id: e.node.id, position: e.node.position, src: e.node.src }))
-        .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
-
-      const img1Id = images[0].id
-      const img2Id = images[1].id
-      const img1Numeric = parseInt(img1Id.split('/').pop())
-      const img2Numeric = parseInt(img2Id.split('/').pop())
+      const img1 = images[0]
+      const img2 = images[1]
 
       // Swap: set image 1 to position 2, image 2 to position 1
-      const res1 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id.split('/').pop()}/images/${img1Numeric}.json`, { image: { id: img1Numeric, position: 2 } })
-      if (!res1.ok) { errors++; results.push({ title: p.title, action: `error swapping img1: ${res1.status}` }); await sleep(1000); continue }
+      const res1 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img1.id}.json`, { image: { id: img1.id, position: 2 } })
+      if (!res1.ok) { errors++; results.push({ title: p.title, action: `error swapping img1: ${res1.status}` }); await sleep(2000); continue }
 
-      await sleep(550)
+      await sleep(600)
 
-      const res2 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id.split('/').pop()}/images/${img2Numeric}.json`, { image: { id: img2Numeric, position: 1 } })
-      if (!res2.ok) { errors++; results.push({ title: p.title, action: `error swapping img2: ${res2.status}` }); await sleep(1000); continue }
+      const res2 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id}/images/${img2.id}.json`, { image: { id: img2.id, position: 1 } })
+      if (!res2.ok) { errors++; results.push({ title: p.title, action: `error swapping img2: ${res2.status}` }); await sleep(2000); continue }
 
       updated++
-      results.push({ title: p.title, action: `swapped image positions (${img1Numeric} ↔ ${img2Numeric})` })
-      await sleep(550)
+      results.push({ title: p.title, action: `swapped (${img1.id} ↔ ${img2.id})` })
+      await sleep(600)
     }
 
-    // Refresh cache so DriveKit site picks up the new order
+    // Refresh cache after swapping
     try {
-      const freshProducts = await fetchAllShopifyProducts()
-      const shaped = freshProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
-      writeCache(shaped)
+      const rawProducts = await fetchAllShopifyProducts()
+      const freshProducts = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+      writeCache(freshProducts)
     } catch {}
 
-    return c.json({ ok: true, total: productEdges.length, updated, skipped, errors, results })
+    return c.json({ ok: true, total: products.length, updated, skipped, errors, results })
   } catch (err: any) {
     return c.json({ error: err.message ?? 'Swap failed' }, 500)
   }
