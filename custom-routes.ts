@@ -2711,7 +2711,7 @@ app.delete('/shopify/products/:id', async (c) => {
 app.get('/shopify/swap-cover-images', async (c) => {
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-  const shopifyPutWithRetry = async (url: string, body: any, retries = 3): Promise<{ ok: boolean; status: number; body?: any }> => {
+  const shopifyPutWithRetry = async (url: string, body: any, retries = 5): Promise<{ ok: boolean; status: number; body?: any }> => {
     for (let attempt = 0; attempt < retries; attempt++) {
       const token = await ensureValidToken()
       const res = await fetch(url, {
@@ -2720,8 +2720,8 @@ app.get('/shopify/swap-cover-images', async (c) => {
         body: JSON.stringify(body),
       })
       if (res.status === 429) {
-        const wait = parseInt(res.headers.get('Retry-After') ?? '2') * 1000
-        await sleep(wait + 500)
+        const wait = parseInt(res.headers.get('Retry-After') ?? '2') * 1000 + 500
+        await sleep(wait)
         continue
       }
       const text = await res.text()
@@ -2731,37 +2731,80 @@ app.get('/shopify/swap-cover-images', async (c) => {
   }
 
   try {
-    // Always fetch live from Shopify to get actual image positions
-    const rawProducts = await fetchAllShopifyProducts()
-    const products = rawProducts.filter((p: any) => p.status === 'active')
+    // Use GraphQL to fetch ALL products with images in a single call (avoids rate limits from paginated REST)
     const token = await ensureValidToken()
     if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+    const gqlQuery = `{
+      products(first: 250, query: "status:active") {
+        edges {
+          node {
+            id
+            title
+            images(first: 5) {
+              edges {
+                node {
+                  id
+                  position
+                  src
+                }
+              }
+            }
+          }
+        }
+      }
+    }`
+
+    const gqlRes = await fetch(`${SHOPIFY_API}/graphql.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': token },
+      body: JSON.stringify({ query: gqlQuery }),
+    })
+
+    if (!gqlRes.ok) {
+      const errText = await gqlRes.text()
+      return c.json({ error: `GraphQL query failed (${gqlRes.status}): ${errText.slice(0, 300)}` }, 502)
+    }
+
+    const gqlData = await gqlRes.json() as any
+    const productEdges = gqlData?.data?.products?.edges ?? []
 
     let updated = 0
     let skipped = 0
     let errors = 0
     const results: Array<{ title: string; action: string }> = []
 
-    for (const p of products) {
-      const pp = p as any
-      const images = (pp.images ?? []).sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
-      if (images.length < 2) { skipped++; results.push({ title: pp.title, action: 'skipped (< 2 images)' }); continue }
+    for (const pe of productEdges) {
+      const p = pe.node
+      const imageEdges = p.images?.edges ?? []
+      if (imageEdges.length < 2) {
+        skipped++
+        results.push({ title: p.title, action: 'skipped (< 2 images)' })
+        continue
+      }
 
-      const img1 = images[0]
-      const img2 = images[1]
+      // Sort by position
+      const images = imageEdges
+        .map((e: any) => ({ id: e.node.id, position: e.node.position, src: e.node.src }))
+        .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+
+      const img1Id = images[0].id
+      const img2Id = images[1].id
+      const img1Numeric = parseInt(img1Id.split('/').pop())
+      const img2Numeric = parseInt(img2Id.split('/').pop())
 
       // Swap: set image 1 to position 2, image 2 to position 1
-      const res1 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${pp.id}/images/${img1.id}.json`, { image: { id: img1.id, position: 2 } })
-      if (!res1.ok) { errors++; results.push({ title: pp.title, action: `error swapping img1: ${res1.status}` }); await sleep(1000); continue }
+      const res1 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id.split('/').pop()}/images/${img1Numeric}.json`, { image: { id: img1Numeric, position: 2 } })
+      if (!res1.ok) { errors++; results.push({ title: p.title, action: `error swapping img1: ${res1.status}` }); await sleep(1000); continue }
 
-      await sleep(600)
+      await sleep(550)
 
-      const res2 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${pp.id}/images/${img2.id}.json`, { image: { id: img2.id, position: 1 } })
-      if (!res2.ok) { errors++; results.push({ title: pp.title, action: `error swapping img2: ${res2.status}` }); await sleep(1000); continue }
+      const res2 = await shopifyPutWithRetry(`${SHOPIFY_API}/products/${p.id.split('/').pop()}/images/${img2Numeric}.json`, { image: { id: img2Numeric, position: 1 } })
+      if (!res2.ok) { errors++; results.push({ title: p.title, action: `error swapping img2: ${res2.status}` }); await sleep(1000); continue }
 
       updated++
-      results.push({ title: pp.title, action: `swapped image positions (${img1.id} ↔ ${img2.id})` })
-      await sleep(600)
+      results.push({ title: p.title, action: `swapped image positions (${img1Numeric} ↔ ${img2Numeric})` })
+      await sleep(550)
     }
 
     // Refresh cache so DriveKit site picks up the new order
@@ -2771,7 +2814,7 @@ app.get('/shopify/swap-cover-images', async (c) => {
       writeCache(shaped)
     } catch {}
 
-    return c.json({ ok: true, total: products.length, updated, skipped, errors, results })
+    return c.json({ ok: true, total: productEdges.length, updated, skipped, errors, results })
   } catch (err: any) {
     return c.json({ error: err.message ?? 'Swap failed' }, 500)
   }
