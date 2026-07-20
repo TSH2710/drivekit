@@ -98,6 +98,13 @@ export function shapeProduct(p: any) {
       height: img.height ?? 600,
     }))
 
+  // Use second image as front cover (swap positions 0 and 1)
+  if (images.length >= 2) {
+    const second = images[1]
+    const first = images[0]
+    images = [second, first, ...images.slice(2)]
+  }
+
   const handleOverride = HANDLE_OVERRIDES[p.handle]
   if (handleOverride && images.length > 0) {
     images = [{ id: images[0].id, src: `/api/generated-images/${handleOverride}`, alt: images[0].alt ?? p.title, width: images[0].width ?? 600, height: images[0].height ?? 600 }, ...images.slice(1)]
