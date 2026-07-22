@@ -5,6 +5,7 @@ import ProductEditor from './ProductEditor'
 import ImageGenerator from './ImageGenerator'
 import EmailManager from './EmailManager'
 import OrderManagement from './OrderManagement'
+import CjMappingPanel from './CjMappingPanel'
 
 interface AdminProps {
   token: string | null
@@ -25,7 +26,7 @@ const statusColor = (status: string) => {
 }
 
 export default function AdminDashboard({ token, onBack }: AdminProps) {
-  const [tab, setTab] = useState<'overview' | 'users' | 'orders' | 'products' | 'editor' | 'generate' | 'email'>('overview')
+  const [tab, setTab] = useState<'overview' | 'users' | 'orders' | 'products' | 'editor' | 'generate' | 'email' | 'cj-mapping'>('overview')
   const [stats, setStats] = useState<any>(null)
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,6 +129,7 @@ export default function AdminDashboard({ token, onBack }: AdminProps) {
     { key: 'email' as const, label: 'Email' },
     { key: 'editor' as const, label: 'Site Editor' },
     { key: 'generate' as const, label: '✨ Generate' },
+    { key: 'cj-mapping' as const, label: 'CJ Mapping' },
   ]
 
   return (
@@ -308,6 +310,10 @@ export default function AdminDashboard({ token, onBack }: AdminProps) {
 
         {tab === 'generate' && (
           <ImageGenerator onBack={() => setTab('overview')} />
+        )}
+
+        {tab === 'cj-mapping' && (
+          <CjMappingPanel token={token} />
         )}
       </div>
     </div>

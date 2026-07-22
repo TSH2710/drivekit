@@ -3116,8 +3116,8 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
             if (score > bestScore) { bestScore = score; bestMatch = live }
           }
 
-          if (!bestMatch || bestScore < 0.3) {
-            console.log(`[fix-pricing] No match for CJ: "${cjTitle}"`)
+          if (!bestMatch || bestScore < 0.5) {
+            console.log(`[fix-pricing] No match for CJ: "${cjTitle}" (best: "${bestMatch?.title}" ${(bestScore * 100).toFixed(0)}%)`)
             continue
           }
 
@@ -3262,6 +3262,198 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
 app.get('/admin/fix-pricing/status', requireAdminMiddleware, async (c) => {
   if (!pricingJob) return c.json({ ok: true, message: 'No job run yet' })
   return c.json({ ok: true, ...pricingJob })
+})
+
+// ── CJ Product Mapping ──────────────────────────────────────
+
+const CJ_MAPPINGS_FILE = join(process.cwd(), 'data', 'cj-mappings.json')
+
+function loadCjMappings(): Record<string, string> {
+  try {
+    if (existsSync(CJ_MAPPINGS_FILE)) return JSON.parse(readFileSync(CJ_MAPPINGS_FILE, 'utf-8'))
+  } catch {}
+  return {}
+}
+
+function saveCjMappings(mappings: Record<string, string>) {
+  const dir = join(process.cwd(), 'data')
+  if (!existsSync(dir)) { require('fs').mkdirSync(dir, { recursive: true }) }
+  require('fs').writeFileSync(CJ_MAPPINGS_FILE, JSON.stringify(mappings, null, 2))
+}
+
+function fuzzyMatch(a: string, b: string): number {
+  const na = normalizeTitle(a)
+  const nb = normalizeTitle(b)
+  if (na === nb) return 1
+  if (na.includes(nb) || nb.includes(na)) return 0.9
+  const ta = new Set(na.split(' ')), tb = new Set(nb.split(' '))
+  const inter = [...ta].filter(t => tb.has(t))
+  return inter.length / new Set([...ta, ...tb]).size
+}
+
+app.get('/admin/cj-mapping', requireAdminMiddleware, async (c) => {
+  try {
+    const cjProducts = loadCjProducts()
+    const cjTitles = Object.keys(cjProducts)
+
+    const rawProducts = await fetchAllShopifyProducts()
+    const shopifyProducts = rawProducts
+      .filter((p: any) => p.status === 'active')
+      .map((p: any) => ({ id: p.id, title: p.title, variantCount: (p.variants ?? []).length, variants: (p.variants ?? []).map((v: any) => v.title) }))
+
+    const existingMappings = loadCjMappings()
+
+    const mapped = cjTitles.map(cjTitle => {
+      const savedShopifyId = existingMappings[cjTitle]
+      const variants = cjProducts[cjTitle]
+
+      // Find best match if no saved mapping
+      let bestMatch: any = null
+      let bestScore = 0
+      for (const sp of shopifyProducts) {
+        const score = fuzzyMatch(cjTitle, sp.title)
+        if (score > bestScore) { bestScore = score; bestMatch = sp }
+      }
+
+      const mappedShopify = savedShopifyId
+        ? shopifyProducts.find(p => String(p.id) === savedShopifyId)
+        : bestScore >= 0.5 ? bestMatch : null
+
+      const existingVariantSet = mappedShopify ? new Set(mappedShopify.variants) : new Set<string>()
+      const missingVariants = variants.filter((v: string) => !existingVariantSet.has(v))
+
+      return {
+        cjTitle,
+        variants,
+        variantCount: variants.length,
+        shopifyId: mappedShopify?.id ? String(mappedShopify.id) : null,
+        shopifyTitle: mappedShopify?.title || null,
+        shopifyVariantCount: mappedShopify?.variantCount ?? 0,
+        missingCount: missingVariants.length,
+        missingVariants,
+        score: bestScore,
+        isAutoMatch: !savedShopifyId && bestScore >= 0.5,
+        isManualMapping: !!savedShopifyId,
+      }
+    })
+
+    const unmapped = mapped.filter(m => !m.shopifyId)
+    const mappedCount = mapped.filter(m => m.shopifyId).length
+
+    return c.json({
+      cjProducts: mapped,
+      shopifyProducts: shopifyProducts.map(p => ({ id: p.id, title: p.title, variantCount: p.variantCount })),
+      totalCj: cjTitles.length,
+      mapped: mappedCount,
+      unmapped: unmapped.length,
+    })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Failed to load CJ mapping' }, 500)
+  }
+})
+
+app.post('/admin/cj-mapping', requireAdminMiddleware, async (c) => {
+  const body = await c.req.json<{ mappings?: Record<string, string> }>()
+  if (!body.mappings) return c.json({ error: 'Missing mappings' }, 400)
+
+  saveCjMappings(body.mappings)
+
+  // Also persist to SiteContent for deploy survival
+  try {
+    await prisma.siteContent.upsert({
+      where: { key: 'cj-mappings' },
+      update: { value: JSON.stringify(body.mappings) },
+      create: { key: 'cj-mappings', value: JSON.stringify(body.mappings) },
+    })
+  } catch {}
+
+  return c.json({ ok: true, count: Object.keys(body.mappings).length })
+})
+
+// Background restore job state
+let cjRestoreJob: { running: boolean; startedAt: string; progress: number; total: number; results: Array<{ cjTitle: string; shopifyTitle: string; created: number; errors: string[] }>; done: boolean; error?: string } | null = null
+
+app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
+  if (cjRestoreJob?.running) return c.json({ ok: false, message: 'Already running', status: '/api/admin/cj-restore/status' }, 202)
+
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  // Load mappings — check DB first, fall back to file
+  let mappings = loadCjMappings()
+  if (Object.keys(mappings).length === 0) {
+    try {
+      const record = await prisma.siteContent.findUnique({ where: { key: 'cj-mappings' } })
+      if (record) mappings = JSON.parse(record.value)
+    } catch {}
+  }
+
+  const cjProducts = loadCjProducts()
+  const cjTitles = Object.keys(mappings).filter(t => cjProducts[t])
+  if (cjTitles.length === 0) return c.json({ error: 'No mapped CJ products found' }, 400)
+
+  const rawProducts = await fetchAllShopifyProducts()
+  const shopifyById: Record<string, any> = {}
+  rawProducts.forEach((p: any) => { shopifyById[String(p.id)] = p })
+
+  cjRestoreJob = { running: true, startedAt: new Date().toISOString(), progress: 0, total: cjTitles.length, results: [], done: false }
+
+  ;(async () => {
+    try {
+      for (const cjTitle of cjTitles) {
+        const shopifyId = mappings[cjTitle]
+        const shopifyProduct = shopifyById[shopifyId]
+        const variants = cjProducts[cjTitle] || []
+
+        if (!shopifyProduct) {
+          cjRestoreJob!.results.push({ cjTitle, shopifyTitle: 'NOT FOUND', created: 0, errors: ['Shopify product not found'] })
+          cjRestoreJob!.progress++
+          continue
+        }
+
+        const existingTitles = new Set((shopifyProduct.variants ?? []).map((v: any) => v.title))
+        let created = 0
+        const errors: string[] = []
+
+        for (const variantTitle of variants) {
+          if (existingTitles.has(variantTitle)) continue
+          try {
+            const res = await fetch(`${SHOPIFY_API}/products/${shopifyId}/variants.json`, {
+              method: 'POST',
+              headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ variant: { product_id: parseInt(shopifyId), title: variantTitle, price: '6.00' } }),
+            })
+            if (res.ok) created++
+            else { const errText = await res.text(); errors.push(`${variantTitle}: ${res.status}`) }
+          } catch (err: any) { errors.push(`${variantTitle}: ${err.message}`) }
+          await new Promise(r => setTimeout(r, 350))
+        }
+
+        cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created, errors })
+        cjRestoreJob!.progress++
+      }
+
+      // Refresh cache
+      try {
+        const fresh = await fetchAllShopifyProducts()
+        writeCache(fresh.filter((p: any) => p.status === 'active').map(shapeProduct))
+      } catch {}
+
+      cjRestoreJob!.done = true
+      cjRestoreJob!.running = false
+    } catch (err: any) {
+      cjRestoreJob!.error = err.message
+      cjRestoreJob!.running = false
+      cjRestoreJob!.done = true
+    }
+  })()
+
+  return c.json({ ok: true, message: 'Restore started', total: cjTitles.length, status: '/api/admin/cj-restore/status' }, 202)
+})
+
+app.get('/admin/cj-restore/status', requireAdminMiddleware, async (c) => {
+  if (!cjRestoreJob) return c.json({ ok: true, message: 'No job run yet' })
+  return c.json({ ok: true, ...cjRestoreJob })
 })
 
 // ── Promo Code Validation (server-side) ──────────────────────
