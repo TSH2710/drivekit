@@ -3015,28 +3015,17 @@ function parsePieceCount(title: string): number | null {
 // Background pricing job state
 let pricingJob: { running: boolean; startedAt: string; progress: number; total: number; results: Array<{ title: string; updated: number; errors: string[] }>; done: boolean; error?: string } | null = null
 
-// Known missing single variants to restore (original data from products.json backup)
-// Format: productVariantGid → { title, price }
-const MISSING_VARIANTS: Record<string, Array<{ title: string; price: string; options?: Record<string, string> }>> = {
-  // Car Seat Neck Support Pillow single variants that were deleted
-  '15089798250862': [
-    { title: 'Beige', price: '24.99', options: { option1: 'Beige', option2: '', option3: '' } },
-    { title: 'Beige Leather', price: '24.99', options: { option1: 'Beige Leather', option2: '', option3: '' } },
-    { title: 'Beige white', price: '24.99', options: { option1: 'Beige white', option2: '', option3: '' } },
-    { title: 'Black', price: '24.99', options: { option1: 'Black', option2: '', option3: '' } },
-    { title: 'Black Leather', price: '24.99', options: { option1: 'Black Leather', option2: '', option3: '' } },
-    { title: 'Black red', price: '24.99', options: { option1: 'Black red', option2: '', option3: '' } },
-    { title: 'Black red Leather', price: '24.99', options: { option1: 'Black red Leather', option2: '', option3: '' } },
-    { title: 'Brown', price: '24.99', options: { option1: 'Brown', option2: '', option3: '' } },
-    { title: 'Brown Leather', price: '24.99', options: { option1: 'Brown Leather', option2: '', option3: '' } },
-    { title: 'Coffee', price: '24.99', options: { option1: 'Coffee', option2: '', option3: '' } },
-    { title: 'Coffee Leather', price: '24.99', options: { option1: 'Coffee Leather', option2: '', option3: '' } },
-    { title: 'Grey', price: '24.99', options: { option1: 'Grey', option2: '', option3: '' } },
-  ],
-  // Emergency Snow Tire Chains — 1set was deleted
-  '15089799332206': [
-    { title: '1set', price: '24.99', options: { option1: '1set', option2: '', option3: '' } },
-  ],
+// Original product data for variant recovery (from products.json)
+// Loaded and matched by title at startup
+const ORIGINAL_PRODUCTS_PATH = join(process.cwd(), 'products.json')
+let originalProductsData: Array<any> | null = null
+try {
+  if (existsSync(ORIGINAL_PRODUCTS_PATH)) {
+    originalProductsData = JSON.parse(readFileSync(ORIGINAL_PRODUCTS_PATH, 'utf-8'))
+    console.log('[fix-pricing] Loaded ' + originalProductsData.length + ' original products from products.json')
+  }
+} catch (e) {
+  console.error('[fix-pricing] Failed to load products.json:', e)
 }
 
 app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
@@ -3049,37 +3038,57 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
 
   ;(async () => {
     try {
-      // Step 1: Restore missing single variants
-      for (const [productGid, variantsToRestore] of Object.entries(MISSING_VARIANTS)) {
-        const productId = productGid.split('/').pop()
-        if (!productId) continue
+      // Step 1: Restore missing variants by cross-referencing products.json
+      let restoredCount = 0
+      if (originalProductsData) {
+        const rawProducts = await fetchAllShopifyProducts()
+        const liveByTitle: Record<string, any> = {}
+        rawProducts.forEach((p: any) => liveByTitle[p.title] = p)
 
-        for (const v of variantsToRestore) {
-          try {
-            // Check if already exists before creating
-            const existing = await fetch(`${SHOPIFY_API}/products/${productId}/variants.json`, {
-              headers: { 'X-Shopify-Access-Token': token },
-            }).then(r => r.json())
-            const exists = existing?.variants?.some((ev: any) => ev.title === v.title)
-            if (!exists) {
-              const variantPayload: any = { product_id: parseInt(productId), title: v.title, price: v.price }
-              if (v.options) {
-                if (v.options.option1) variantPayload.option1 = v.options.option1
-                if (v.options.option2) variantPayload.option2 = v.options.option2
-                if (v.options.option3) variantPayload.option3 = v.options.option3
-              }
-              await fetch(`${SHOPIFY_API}/products/${productId}/variants.json`, {
+        for (const orig of originalProductsData) {
+          const title = orig.title
+          if (!title) continue
+          const live = liveByTitle[title]
+          if (!live) continue
+
+          const origVariants: Array<any> = Object.values(orig.variants?.edges ?? {}).map((e: any) => e.node)
+          const liveVariants: Array<any> = live.variants ?? []
+          const liveTitles = new Set(liveVariants.map((v: any) => v.title))
+
+          for (const ov of origVariants) {
+            if (liveTitles.has(ov.title)) continue
+
+            const variantPayload: any = {
+              product_id: live.id,
+              title: ov.title,
+              price: String(Math.max(parseFloat(ov.price), 6.00)),
+            }
+            // Map option1/2/3 if available
+            for (let i = 0; i < 3; i++) {
+              const opt = ov[`option${i + 1}`]
+              if (opt) variantPayload[`option${i + 1}`] = opt
+            }
+
+            try {
+              const res = await fetch(`${SHOPIFY_API}/products/${live.id}/variants.json`, {
                 method: 'POST',
                 headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ variant: variantPayload }),
               })
-              console.log(`[fix-pricing] Restored variant "${v.title}" for product ${productId}`)
+              if (res.ok) {
+                restoredCount++
+                console.log(`[fix-pricing] Restored "${ov.title}" variant for "${title}"`)
+              } else {
+                const errText = await res.text()
+                console.log(`[fix-pricing] Failed to restore "${ov.title}" for "${title}": ${res.status} ${errText.slice(0, 100)}`)
+              }
+            } catch (err: any) {
+              console.error(`[fix-pricing] Error restoring "${ov.title}" for "${title}": ${err.message}`)
             }
-          } catch (err: any) {
-            console.error(`[fix-pricing] Failed to restore "${v.title}": ${err.message}`)
+            await new Promise(r => setTimeout(r, 300))
           }
-          await new Promise(r => setTimeout(r, 300))
         }
+        console.log(`[fix-pricing] Restored ${restoredCount} variants total`)
       }
 
       // Step 2: Now update all prices
