@@ -3000,7 +3000,7 @@ app.post('/shopify/upload-cover', requireAdminMiddleware, async (c) => {
 
 // ── Fix Variant Pricing ────────────────────────────────────────
 // POST /admin/fix-pricing — applies sensible prices to quantity-based variants
-// e.g. 2pcs should cost more than 1pcs, but less than 2× single price.
+// Also restores missing single-variants that were accidentally deleted.
 
 function parsePieceCount(title: string): number | null {
   const clean = title.toLowerCase().replace(/[^a-z0-9]/g, ' ')
@@ -3015,6 +3015,30 @@ function parsePieceCount(title: string): number | null {
 // Background pricing job state
 let pricingJob: { running: boolean; startedAt: string; progress: number; total: number; results: Array<{ title: string; updated: number; errors: string[] }>; done: boolean; error?: string } | null = null
 
+// Known missing single variants to restore (original data from products.json backup)
+// Format: productVariantGid → { title, price }
+const MISSING_VARIANTS: Record<string, Array<{ title: string; price: string; options?: Record<string, string> }>> = {
+  // Car Seat Neck Support Pillow variants that were deleted
+  'gid://shopify/Product/9851761959150': [
+    { title: 'Beige', price: '24.99' },
+    { title: 'Beige Leather', price: '24.99' },
+    { title: 'Beige white', price: '24.99' },
+    { title: 'Black', price: '24.99' },
+    { title: 'Black Leather', price: '24.99' },
+    { title: 'Black red', price: '24.99' },
+    { title: 'Black red Leather', price: '24.99' },
+    { title: 'Brown', price: '24.99' },
+    { title: 'Brown Leather', price: '24.99' },
+    { title: 'Coffee', price: '24.99' },
+    { title: 'Coffee Leather', price: '24.99' },
+    { title: 'Grey', price: '24.99' },
+  ],
+  // Emergency Snow Tire Chains — 1set was deleted
+  'gid://shopify/Product/9851765555438': [
+    { title: '1set', price: '24.99' },
+  ],
+}
+
 app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
   if (pricingJob?.running) return c.json({ ok: false, message: 'Job already running', status: '/api/admin/fix-pricing/status' }, 202)
 
@@ -3025,6 +3049,34 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
 
   ;(async () => {
     try {
+      // Step 1: Restore missing single variants
+      for (const [productGid, variantsToRestore] of Object.entries(MISSING_VARIANTS)) {
+        const productId = productGid.split('/').pop()
+        if (!productId) continue
+
+        for (const v of variantsToRestore) {
+          try {
+            // Check if already exists before creating
+            const existing = await fetch(`${SHOPIFY_API}/products/${productId}/variants.json`, {
+              headers: { 'X-Shopify-Access-Token': token },
+            }).then(r => r.json())
+            const exists = existing?.variants?.some((ev: any) => ev.title === v.title)
+            if (!exists) {
+              await fetch(`${SHOPIFY_API}/products/${productId}/variants.json`, {
+                method: 'POST',
+                headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variant: { product_id: parseInt(productId), title: v.title, price: v.price } }),
+              })
+              console.log(`[fix-pricing] Restored variant "${v.title}" for product ${productId}`)
+            }
+          } catch (err: any) {
+            console.error(`[fix-pricing] Failed to restore "${v.title}": ${err.message}`)
+          }
+          await new Promise(r => setTimeout(r, 300))
+        }
+      }
+
+      // Step 2: Now update all prices
       const rawProducts = await fetchAllShopifyProducts()
       const active = rawProducts.filter((p: any) => p.status === 'active')
       pricingJob!.total = active.length
