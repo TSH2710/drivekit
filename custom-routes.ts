@@ -3422,24 +3422,43 @@ app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
           continue
         }
 
-        // Get the product's option names
-        const productOptions = shopifyProduct.options ?? []
-        const optionName = productOptions.length > 0 ? productOptions[0].name : 'Title'
-
-        // Use REST API — update product options and create variants in one call
+        // Strategy: First update product options to include new values, then create variants
         try {
-          const existingVariants = (shopifyProduct.variants ?? []).map((v: any) => ({
-            id: v.id, option1: v.option1 ?? v.title ?? 'Default Title', price: String(v.price ?? '6.00'),
-          }))
-          // First merge option values so new variant titles are recognized
-          const newOptionValues = [...new Set(variantsToCreate.filter(t => !productOptions[0]?.values?.includes(t)))]
-          const updatedOptions = productOptions.map((opt: any) => ({
-            name: opt.name,
-            values: [...new Set([...opt.values, ...newOptionValues])],
-          }))
+          const productOptions = shopifyProduct.options ?? []
 
-          // We need to use the product PUT with options, which is risky (can delete variants).
-          // Instead, try the REST variant POST — it accepts title+option1 as variant title
+          if (productOptions.length > 0) {
+            // Step 1: Merge new variant titles into the option values
+            const newVals = variantsToCreate.filter((v: string) => !productOptions[0]?.values?.includes(v))
+            if (newVals.length > 0) {
+              const mergedOptions = productOptions.map((opt: any) => ({
+                name: opt.name,
+                values: [...new Set([...opt.values, ...newVals])],
+              }))
+              // Update product options first, keeping ALL existing variants
+              const allVariants = (shopifyProduct.variants ?? []).map((v: any) => ({
+                id: v.id,
+                option1: v.option1 ?? v.title ?? 'Default Title',
+                price: String(v.price ?? '6.00'),
+              }))
+              const optRes = await fetch(`${SHOPIFY_API}/products/${shopifyId}.json`, {
+                method: 'PUT',
+                headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  product: { id: parseInt(shopifyId), options: mergedOptions, variants: allVariants },
+                }),
+              })
+              if (!optRes.ok) {
+                const t = await optRes.text()
+                errors.push(`Option update failed: ${optRes.status} ${t.slice(0,150)}`)
+                cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created: 0, errors })
+                cjRestoreJob!.progress++
+                continue
+              }
+              console.log(`[restore] Added ${newVals.length} option values to "${shopifyProduct.title}"`)
+            }
+          }
+
+          // Step 2: Create individual variants
           for (const variantTitle of variantsToCreate) {
             try {
               const res = await fetch(`${SHOPIFY_API}/products/${shopifyId}/variants.json`, {
@@ -3457,13 +3476,12 @@ app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
               if (res.ok) created++
               else {
                 const errText = await res.text()
-                const parsed = errText ? JSON.parse(errText) : {}
-                errors.push(`${variantTitle}: ${res.status} — ${parsed?.errors ?? errText.slice(0, 100)}`)
+                errors.push(`${variantTitle}: ${res.status} — ${errText.slice(0, 150)}`)
               }
             } catch (err: any) { errors.push(`${variantTitle}: ${err.message}`) }
             await new Promise(r => setTimeout(r, 400))
           }
-        } catch (err: any) { errors.push(`Error: ${err.message}`) }
+        } catch (err: any) { errors.push(`Unexpected: ${err.message}`) }
 
         cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created, errors })
         cjRestoreJob!.progress++
