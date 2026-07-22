@@ -3415,7 +3415,6 @@ app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
         let created = 0
         const errors: string[] = []
 
-        // Use Shopify GraphQL API to create variants — more reliable than REST
         const variantsToCreate = variants.filter((v: string) => !existingTitles.has(v))
         if (variantsToCreate.length === 0) {
           cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created: 0, errors: [] })
@@ -3423,43 +3422,48 @@ app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
           continue
         }
 
-        // Build GraphQL product variant inputs
-        const variantInputs = variantsToCreate.map((v: string) => ({
-          optionValues: [{ optionName: 'Title', name: v }],
-          price: '6.00',
-        }))
+        // Get the product's option names
+        const productOptions = shopifyProduct.options ?? []
+        const optionName = productOptions.length > 0 ? productOptions[0].name : 'Title'
 
-        // Create in batches of 50 (GraphQL limit)
-        for (let i = 0; i < variantInputs.length; i += 50) {
-          const batch = variantInputs.slice(i, i + 50)
-          try {
-            const gqlId = `gid://shopify/Product/${shopifyId}`
-            const res = await fetch(`${SHOPIFY_API.replace('/admin/api/2024-10', '')}/admin/api/2024-10/graphql.json`, {
-              method: 'POST',
-              headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                query: `mutation productVariantsBulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-                  productVariantsBulkCreate(productId: $productId, variants: $variants) {
-                    productVariants { id title }
-                    userErrors { field message }
-                  }
-                }`,
-                variables: { productId: gqlId, variants: batch },
-              }),
-            })
-            const data = await res.json()
-            const userErrors = data?.data?.productVariantsBulkCreate?.userErrors ?? []
-            const createdVariants = data?.data?.productVariantsBulkCreate?.productVariants ?? []
-            if (userErrors.length > 0) {
-              errors.push(`GQL batch ${i}: ${userErrors.map((e: any) => e.message).join(', ')}`)
-            } else {
-              created += createdVariants.length
-            }
-          } catch (err: any) {
-            errors.push(`GQL error: ${err.message}`)
+        // Use REST API — update product options and create variants in one call
+        try {
+          const existingVariants = (shopifyProduct.variants ?? []).map((v: any) => ({
+            id: v.id, option1: v.option1 ?? v.title ?? 'Default Title', price: String(v.price ?? '6.00'),
+          }))
+          // First merge option values so new variant titles are recognized
+          const newOptionValues = [...new Set(variantsToCreate.filter(t => !productOptions[0]?.values?.includes(t)))]
+          const updatedOptions = productOptions.map((opt: any) => ({
+            name: opt.name,
+            values: [...new Set([...opt.values, ...newOptionValues])],
+          }))
+
+          // We need to use the product PUT with options, which is risky (can delete variants).
+          // Instead, try the REST variant POST — it accepts title+option1 as variant title
+          for (const variantTitle of variantsToCreate) {
+            try {
+              const res = await fetch(`${SHOPIFY_API}/products/${shopifyId}/variants.json`, {
+                method: 'POST',
+                headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  variant: {
+                    product_id: parseInt(shopifyId),
+                    title: variantTitle,
+                    option1: variantTitle,
+                    price: '6.00',
+                  },
+                }),
+              })
+              if (res.ok) created++
+              else {
+                const errText = await res.text()
+                const parsed = errText ? JSON.parse(errText) : {}
+                errors.push(`${variantTitle}: ${res.status} — ${parsed?.errors ?? errText.slice(0, 100)}`)
+              }
+            } catch (err: any) { errors.push(`${variantTitle}: ${err.message}`) }
+            await new Promise(r => setTimeout(r, 400))
           }
-          await new Promise(r => setTimeout(r, 500))
-        }
+        } catch (err: any) { errors.push(`Error: ${err.message}`) }
 
         cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created, errors })
         cjRestoreJob!.progress++
