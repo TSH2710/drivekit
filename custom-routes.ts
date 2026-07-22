@@ -11,7 +11,7 @@
 
 import { Hono } from 'hono'
 import { prisma } from './src/lib/db'
-import { randomBytes, createHmac } from 'crypto'
+import { randomBytes, randomInt, createHmac } from 'crypto'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -26,7 +26,8 @@ import {
 } from './src/lib/email-helpers'
 
 import {
-  hashPassword, generateToken, generateSixDigitCode, cleanExpiredSessions,
+  hashPassword, verifyPassword, generateToken, generateSixDigitCode,
+  checkRateLimit, cleanExpiredSessions,
   getSessionUser, setSession, deleteSession, pendingSignups, CODE_EXPIRY_MS, SESSION_MAX_AGE_MS,
 } from './src/lib/auth-helpers'
 
@@ -112,7 +113,7 @@ app.get('/shopify/sync', requireAdminMiddleware, async (c) => {
 
 const SEASONAL_TAG_RE = /^(batch[- ]?[123]|summer|winter|all[- ]?season)$/i
 
-app.get('/shopify/sync-tags', async (c) => {
+app.get('/shopify/sync-tags', requireAdminMiddleware, async (c) => {
   try {
     const rawProducts = await fetchAllShopifyProducts()
     const active = rawProducts.filter((p: any) => p.status === 'active')
@@ -199,7 +200,7 @@ function classifySummer(title: string): boolean {
   return false
 }
 
-app.get('/shopify/summer-tag', async (c) => {
+app.get('/shopify/summer-tag', requireAdminMiddleware, async (c) => {
   try {
     const rawProducts = await fetchAllShopifyProducts()
     const active = rawProducts.filter((p: any) => p.status === 'active')
@@ -251,7 +252,7 @@ app.get('/shopify/summer-tag', async (c) => {
 
 // ── Seasonal Sale (Start / End) ───────────────────────────────
 
-app.get('/shopify/sale', async (c) => {
+app.get('/shopify/sale', requireAdminMiddleware, async (c) => {
   const action = c.req.query('action') ?? 'start'   // start | end
   const tag = c.req.query('tag') ?? 'summer'
   const discountPct = parseInt(c.req.query('discount') ?? '20')
@@ -337,7 +338,7 @@ app.get('/shopify/sale', async (c) => {
 
 // ── Cache Refresh (after tag sync) ────────────────────────────
 
-app.get('/shopify/cache/refresh', async (c) => {
+app.get('/shopify/cache/refresh', requireAdminMiddleware, async (c) => {
   try {
     const rawProducts = await fetchAllShopifyProducts()
     const products = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
@@ -614,7 +615,7 @@ app.get('/shopify/token-status', async (c) => {
 // ── Create Missing Variants ──────────────────────────────────
 // POST /shopify/create-variants — add color/size options to single-variant products
 
-app.post('/shopify/create-variants', async (c) => {
+app.post('/shopify/create-variants', requireAdminMiddleware, async (c) => {
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
@@ -677,7 +678,7 @@ app.post('/shopify/create-variants', async (c) => {
 // ── Update Product Variants (full replace via REST API) ─────────
 // POST /shopify/update-variants — replaces all options and variants for a product
 
-app.post('/shopify/update-variants', async (c) => {
+app.post('/shopify/update-variants', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{ productId?: string; options?: Array<{ name: string; values: string[] }>; variants?: Array<{ optionValues: Record<string, string>; price: string; sku: string }> }>()
   const { productId, options, variants } = body
 
@@ -796,7 +797,7 @@ app.post('/shopify/update-variants', async (c) => {
 // ── Update Variant Prices & Images (PATCH, no delete) ──────────
 // POST /shopify/patch-variants — updates price and image_id on existing variants
 
-app.post('/shopify/patch-variants', async (c) => {
+app.post('/shopify/patch-variants', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{ updates?: Array<{ variantId: string; price?: string; imageId?: string }> }>()
   const { updates } = body
 
@@ -844,7 +845,7 @@ app.post('/shopify/patch-variants', async (c) => {
 
 // ── Manual Token Injection (fallback when OAuth fails) ─────────
 // POST /shopify/set-token — accepts a Shopify access token and saves it
-app.post('/shopify/set-token', async (c) => {
+app.post('/shopify/set-token', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{ token?: string }>()
   const token = body.token?.trim()
   if (!token) return c.json({ error: 'Missing "token" parameter' }, 400)
@@ -861,7 +862,7 @@ app.post('/shopify/set-token', async (c) => {
 
 // ── Create Discount Code ────────────────────────────────────────
 // POST /shopify/create-discount — creates a Shopify discount code
-app.post('/shopify/create-discount', async (c) => {
+app.post('/shopify/create-discount', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{ code?: string; discountType?: string; value?: string; usageLimit?: number | null; oncePerCustomer?: boolean }>()
   const code = body.code?.trim()
   if (!code) return c.json({ error: 'Missing "code" parameter' }, 400)
@@ -1098,6 +1099,11 @@ app.post('/auth/request-code', async (c) => {
   const body = await c.req.json<{ email?: string; password?: string; name?: string; emailOptIn?: boolean }>()
   const email = body.email?.trim().toLowerCase()
   const password = body.password
+
+  // Rate limit check
+  if (email && !checkRateLimit(`request-code:${email}`, 3, 60000)) {
+    return c.json({ error: 'Too many requests. Please wait before requesting a new code.' }, 429)
+  }
   const name = body.name?.trim() || null
   const emailOptIn = body.emailOptIn !== false
 
@@ -1125,11 +1131,11 @@ app.post('/auth/request-code', async (c) => {
 
   const result = await sendEmail(email, 'Your DriveKit verification code 🔐', codeHtml, 'verification-code')
   if (result.ok) {
-    console.log(`[auth] Verification code sent to ${email}: ${code}`)
+    console.log(`[auth] Verification code sent to ${email}`)
     return c.json({ ok: true, message: 'Verification code sent to your email', email })
   }
-  console.log(`[auth] Email failed for ${email}, returning code in response: ${code}`)
-  return c.json({ ok: true, message: 'Verification code sent', email, code })
+  console.error(`[auth] Email failed for ${email} — code NOT returned to client`)
+  return c.json({ error: 'Failed to send verification email. Please try again later.' }, 500)
 })
 
 app.post('/auth/confirm-signup', async (c) => {
@@ -1138,6 +1144,11 @@ app.post('/auth/confirm-signup', async (c) => {
   const code = body.code?.trim()
 
   if (!email || !code) return c.json({ error: 'Email and code are required' }, 400)
+
+  // Rate limit check
+  if (!checkRateLimit(`confirm-signup:${email}`, 10, 60000)) {
+    return c.json({ error: 'Too many attempts. Please try again later.' }, 429)
+  }
 
   const pending = pendingSignups.get(email)
   if (!pending) return c.json({ error: 'No pending signup found for this email. Please request a new code.' }, 404)
@@ -1190,8 +1201,13 @@ app.post('/auth/signin', async (c) => {
 
   if (!email || !password) return c.json({ error: 'Email and password are required' }, 400)
 
+  // Rate limit check
+  if (!checkRateLimit(`signin:${email}`, 10, 60000)) {
+    return c.json({ error: 'Too many attempts. Please try again later.' }, 429)
+  }
+
   const user = await prisma.user.findUnique({ where: { email } })
-  if (!user || user.passwordHash !== hashPassword(password)) return c.json({ error: 'Invalid email or password' }, 401)
+  if (!user || !verifyPassword(password, user.passwordHash)) return c.json({ error: 'Invalid email or password' }, 401)
 
   const token = generateToken()
   setSession(token, user.id, user.email, user.role)
@@ -1275,17 +1291,24 @@ app.patch('/admin/orders/:id/status', requireAdminMiddleware, async (c) => {
 })
 
 app.get('/admin/orders', requireAdminMiddleware, async (c) => {
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: { items: true, user: { select: { id: true, email: true, name: true } } },
-  })
-  return c.json({ orders })
+  const page = Math.max(1, parseInt(c.req.query('page') ?? '1'))
+  const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') ?? '25')))
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: { items: true, user: { select: { id: true, email: true, name: true } } },
+    }),
+    prisma.order.count(),
+  ])
+  return c.json({ orders, total, page, totalPages: Math.ceil(total / limit) })
 })
 
 // ── Shopify Webhook ───────────────────────────────────────────
 
 function generateOrderNumber(): string {
-  return `DK-${Math.floor(10000 + Math.random() * 90000)}`
+  return `DK-${randomInt(10000, 100000)}`
 }
 
 app.post('/webhooks/shopify/orders', async (c) => {
@@ -1294,7 +1317,20 @@ app.post('/webhooks/shopify/orders', async (c) => {
     return c.json({ ok: true, skipped: true })
   }
 
-  const body = await c.req.json<any>()
+  // Read raw body for HMAC verification
+  const rawBody = await c.req.text()
+
+  // Verify HMAC signature if client secret is configured
+  const hmacHeader = c.req.header('X-Shopify-Hmac-Sha256')
+  if (SHOPIFY_CLIENT_SECRET && hmacHeader) {
+    const expectedHmac = createHmac('sha256', SHOPIFY_CLIENT_SECRET).update(rawBody, 'utf-8').digest('base64')
+    if (hmacHeader !== expectedHmac) {
+      console.error('[webhook] Invalid HMAC signature — rejecting')
+      return c.json({ error: 'Invalid HMAC signature' }, 401)
+    }
+  }
+
+  const body = JSON.parse(rawBody) as any
   const shopifyOrderId = String(body.id)
   const shopifyOrderNumber = body.order_number ? `#${body.order_number}` : null
 
@@ -1606,29 +1642,73 @@ app.post('/orders/place', optionalAuth, async (c) => {
 
   if (!body.email || !body.items?.length || !body.total) return c.json({ error: 'Missing required fields' }, 400)
 
+  // Server-validate order total from cached product prices
+  const cached = readCache()
+  let serverTotal = 0
+  const verifiedItems: Array<{
+    productId: string; variantId?: string | null; title: string; variantTitle?: string | null
+    quantity: number; price: number; total: number
+  }> = []
+
+  for (const item of body.items) {
+    let price = item.price
+    if (cached) {
+      const product = cached.products.find(p => String(p.id) === item.productId)
+      if (product) {
+        const variant = item.variantId
+          ? product.variants.find(v => String(v.id) === item.variantId)
+          : null
+        if (variant) {
+          price = variant.price
+        } else {
+          price = product.minPrice
+        }
+      }
+    }
+    const total = price * item.quantity
+    verifiedItems.push({
+      productId: item.productId, variantId: item.variantId ?? null,
+      title: item.title, variantTitle: item.variantTitle ?? null,
+      quantity: item.quantity, price, total,
+    })
+    serverTotal += total
+  }
+
+  // Apply promo discount server-side
+  if (body.promoCode) {
+    const promo = PROMO_CODES[body.promoCode.toUpperCase()]
+    if (promo) {
+      serverTotal *= (1 - promo.discount)
+    }
+  }
+  serverTotal = Math.round(serverTotal * 100) / 100
+
   let orderNumber = generateOrderNumber()
   while (await prisma.order.findUnique({ where: { orderNumber } })) orderNumber = generateOrderNumber()
 
-  const order = await prisma.order.create({
-    data: {
-      orderNumber, userId: sessionUser?.userId ?? null, email: body.email, status: 'pending',
-      total: body.total,
-      shippingName: body.shipping?.name, shippingAddress1: body.shipping?.address1,
-      shippingAddress2: body.shipping?.address2, shippingCity: body.shipping?.city,
-      shippingState: body.shipping?.state, shippingZip: body.shipping?.zip, shippingCountry: body.shipping?.country,
-      promoCode: body.promoCode, discount: body.discount ?? 0,
-    },
-  })
-
-  for (const item of body.items) {
-    await prisma.orderItem.create({
+  const [order] = await prisma.$transaction(async (tx) => {
+    const o = await tx.order.create({
       data: {
-        orderId: order.id, productId: item.productId, variantId: item.variantId,
-        title: item.title, variantTitle: item.variantTitle, quantity: item.quantity,
-        price: item.price, total: item.price * item.quantity,
+        orderNumber, userId: sessionUser?.userId ?? null, email: body.email, status: 'pending',
+        total: serverTotal,
+        shippingName: body.shipping?.name, shippingAddress1: body.shipping?.address1,
+        shippingAddress2: body.shipping?.address2, shippingCity: body.shipping?.city,
+        shippingState: body.shipping?.state, shippingZip: body.shipping?.zip, shippingCountry: body.shipping?.country,
+        promoCode: body.promoCode, discount: body.discount ?? 0,
       },
     })
-  }
+
+    for (const item of verifiedItems) {
+      await tx.orderItem.create({
+        data: {
+          orderId: o.id, productId: item.productId, variantId: item.variantId,
+          title: item.title, variantTitle: item.variantTitle, quantity: item.quantity,
+          price: item.price, total: item.total,
+        },
+      })
+    }
+    return [o]
+  })
 
   const fullOrder = await prisma.order.findUnique({ where: { id: order.id }, include: { items: true } })
 
@@ -1818,8 +1898,13 @@ app.put('/site-content', requireAdminMiddleware, async (c) => {
 
 app.get('/generated-images/:filename', async (c) => {
   const filename = c.req.param('filename')
-  const genDir = `${process.cwd()}/generated-products`
-  const filePath = existsSync(`${genDir}/${filename}`) ? `${genDir}/${filename}` : `${process.cwd()}/${filename}`
+  // Prevent path traversal
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return c.json({ error: 'Invalid filename' }, 400)
+  }
+  const genDir = join(process.cwd(), 'generated-products')
+  const filePath = join(genDir, filename)
+  if (!filePath.startsWith(genDir)) return c.json({ error: 'Invalid path' }, 400)
   if (!existsSync(filePath)) return c.json({ error: 'File not found' }, 404)
   const data = readFileSync(filePath)
   const ext = filename.split('.').pop()?.toLowerCase() ?? 'png'
@@ -1950,7 +2035,7 @@ app.get('/higgsfield/styles', async (c) => {
   catch (err: any) { return c.json({ error: err.message ?? 'Failed to fetch styles' }, 500) }
 })
 
-app.post('/higgsfield/generate', async (c) => {
+app.post('/higgsfield/generate', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{ prompt?: string; style_id?: string; width_and_height?: string; quality?: string; batch_size?: number; seed?: number; reference_images?: string[] }>()
   if (!body.prompt?.trim()) return c.json({ error: 'Prompt is required' }, 400)
 
@@ -2099,7 +2184,7 @@ app.post('/auth/send-verification', async (c) => {
 
   if (!email && body.email && body.password) {
     const u = await prisma.user.findUnique({ where: { email: String(body.email).trim().toLowerCase() } })
-    if (u && u.passwordHash === hashPassword(String(body.password))) { userId = u.id; email = u.email }
+    if (u && verifyPassword(String(body.password), u.passwordHash)) { userId = u.id; email = u.email }
   }
 
   if (!email) return c.json({ error: 'Authentication required' }, 401)
@@ -2230,7 +2315,7 @@ app.post('/contact', async (c) => {
 
 // ── Backup Download ───────────────────────────────────────────
 
-app.get('/download/backup', async (c) => {
+app.get('/download/backup', requireAdminMiddleware, async (c) => {
   const backupPath = join(process.cwd(), 'drivekit-backup.tar.gz')
   if (!existsSync(backupPath)) return c.json({ error: 'Backup file not found' }, 404)
   const data = readFileSync(backupPath)
@@ -2242,7 +2327,7 @@ app.get('/download/backup', async (c) => {
 // ── Fix Fulfillment (enable inventory + set location qty) ─────
 // GET /shopify/fix-fulfillment — diagnoses and fixes grayed-out Fulfill button
 
-app.get('/shopify/fix-fulfillment', async (c) => {
+app.get('/shopify/fix-fulfillment', requireAdminMiddleware, async (c) => {
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
@@ -2393,7 +2478,7 @@ app.get('/shopify/fix-fulfillment', async (c) => {
 // ── Retag Products into 3 Batches ─────────────────────────────
 // GET /shopify/retag-batches?page=1 — uses cached products to avoid slow Shopify fetch
 
-app.get('/shopify/retag-batches', async (c) => {
+app.get('/shopify/retag-batches', requireAdminMiddleware, async (c) => {
   try {
     const page = parseInt(c.req.query('page') || '1', 10)
     const PAGE_SIZE = parseInt(c.req.query('batchSize') || '5', 10)
@@ -2454,7 +2539,7 @@ app.get('/shopify/retag-batches', async (c) => {
 // ── Delete Specific Variant ──────────────────────────────────
 // POST /shopify/delete-variant — deletes a single variant by product ID and variant title
 
-app.post('/shopify/delete-variant', async (c) => {
+app.post('/shopify/delete-variant', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{ productId?: string; variantTitle?: string }>()
   const { productId, variantTitle } = body
 
@@ -2506,7 +2591,7 @@ app.post('/shopify/delete-variant', async (c) => {
 // POST /shopify/add-variants — adds new variants to a product without removing existing ones
 // Uses REST API only (no GraphQL mutations)
 
-app.post('/shopify/add-variants', async (c) => {
+app.post('/shopify/add-variants', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{
     productId?: string
     options?: Array<{ name: string; values: string[] }>
@@ -2667,7 +2752,7 @@ app.post('/shopify/add-variants', async (c) => {
 // ── Delete Product from Shopify ────────────────────────────────
 // DELETE /shopify/products/:id — permanently deletes a product
 
-app.delete('/shopify/products/:id', async (c) => {
+app.delete('/shopify/products/:id', requireAdminMiddleware, async (c) => {
   const productId = c.req.param('id')
   if (!productId) return c.json({ error: 'Missing product ID' }, 400)
 
@@ -2717,7 +2802,7 @@ function isLifestyleImage(img: any): boolean {
   return src.includes('lifestyle')
 }
 
-app.get('/shopify/promote-lifestyle-covers', async (c) => {
+app.get('/shopify/promote-lifestyle-covers', requireAdminMiddleware, async (c) => {
   if (promoteJob?.running) {
     return c.json({ ok: false, message: 'Job already running', ...promoteJob }, 202)
   }
@@ -2803,13 +2888,13 @@ app.get('/shopify/promote-lifestyle-covers', async (c) => {
   return c.json({ ok: true, message: 'Started in background', total: products.length, pollAt: '/api/shopify/promote-lifestyle-covers/status' }, 202)
 })
 
-app.get('/shopify/promote-lifestyle-covers/status', async (c) => {
+app.get('/shopify/promote-lifestyle-covers/status', requireAdminMiddleware, async (c) => {
   if (!promoteJob) return c.json({ ok: true, message: 'No job found' })
   return c.json({ ok: true, ...promoteJob })
 })
 
 // Internal endpoint: returns the current valid Shopify token (for upload scripts)
-app.get('/shopify/_internal-token', async (c) => {
+app.get('/shopify/_internal-token', requireAdminMiddleware, async (c) => {
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid token' }, 500)
   return c.json({ token })
@@ -2820,7 +2905,7 @@ app.get('/shopify/_internal-token', async (c) => {
 // Body: { productId: string, imageBase64: string, filename: string }
 // The image is uploaded to Shopify and set as position 1 (cover)
 
-app.post('/shopify/upload-cover', async (c) => {
+app.post('/shopify/upload-cover', requireAdminMiddleware, async (c) => {
   const body = await c.req.json<{ productId?: string; imageBase64?: string; filename?: string; imageUrl?: string }>()
   const { productId, imageBase64, filename, imageUrl } = body
 
@@ -2885,28 +2970,13 @@ app.post('/shopify/upload-cover', async (c) => {
   }
 })
 
-// ── Auto-Seed Owner Account ───────────────────────────────────
-;(async () => {
-  try {
-    const email = 'owner@drivekit.com'
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (!existing) {
-      const user = await prisma.user.create({
-        data: { email, passwordHash: hashPassword('Drivekit2024'), name: 'Owner', role: 'OWNER' },
-      })
-      console.log(`[seed] ✅ Owner account created: ${email} (id: ${user.id})`)
-    } else {
-      console.log(`[seed] Owner account already exists: ${email}`)
-    }
-  } catch (err: any) {
-    console.error('[seed] Failed to seed owner account:', err.message)
-  }
-})()
+// ── Owner Account Note ──────────────────────────────────────────
+// Owner accounts should be created manually. The auto-seed was removed for security.
+// Use the admin signup flow or a one-time migration script to create an owner account.
 
 // ── Promo Code Validation (server-side) ──────────────────────
 
 const PROMO_CODES: Record<string, { discount: number; label: string }> = {
-  OWNER: { discount: 1.0, label: '100% off — Free order' },
   DRIVE20: { discount: 0.20, label: '20% off' },
   WELCOME10: { discount: 0.10, label: '10% off' },
   VIP15: { discount: 0.15, label: '15% off' },

@@ -1131,7 +1131,7 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
         {(() => {
           const related = allProducts
             .filter((p) => p.id !== product.id && p.minPrice < 40 && p.inStock)
-            .sort(() => Math.random() - 0.5)
+            .sort((a, b) => (a.id * 31 + b.id * 7) % 11 - 5)
             .slice(0, 2)
           if (related.length === 0 || !displayInStock) return null
           const bundleTotal = displayPrice + related.reduce((s, p) => s + p.minPrice, 0)
@@ -1505,18 +1505,26 @@ export default function DriveKitStore() {
     })
   }, [])
 
-  const removeFromCart = useCallback((productId: number) => {
-    setCartItems((prev) => prev.filter((item) => item.product.id !== productId))
+  const removeFromCart = useCallback((productId: number, variantId?: number) => {
+    setCartItems((prev) => prev.filter((item) =>
+      variantId !== undefined && item.variantId !== undefined
+        ? !(item.product.id === productId && item.variantId === variantId)
+        : item.product.id !== productId
+    ))
   }, [])
 
-  const updateCartQuantity = useCallback((productId: number, quantity: number) => {
+  const updateCartQuantity = useCallback((productId: number, quantity: number, variantId?: number) => {
     if (quantity <= 0) {
-      setCartItems((prev) => prev.filter((item) => item.product.id !== productId))
+      setCartItems((prev) => prev.filter((item) =>
+        variantId !== undefined && item.variantId !== undefined
+          ? !(item.product.id === productId && item.variantId === variantId)
+          : item.product.id !== productId
+      ))
       return
     }
     setCartItems((prev) =>
       prev.map((item) =>
-        item.product.id === productId
+        (item.product.id === productId && (variantId === undefined || item.variantId === variantId))
           ? { ...item, quantity: Math.min(quantity, 10) }
           : item
       )
@@ -1578,7 +1586,7 @@ export default function DriveKitStore() {
 
   const filteredProducts = useMemo(() => {
     let list = products.filter((p) => !p.hidden)
-    if (activeCategory === 'Trending Now') list = [...list].sort(() => Math.random() - 0.5).slice(0, 12)
+    if (activeCategory === 'Trending Now') list = [...list].sort((a, b) => (a.id * 13 + b.id * 17) % 7 - 3).slice(0, 12)
     else if (activeCategory === 'Best Sellers') list = [...list].sort((a, b) => { const aInv = a.variants.reduce((s, v) => s + v.inventoryQuantity, 0); const bInv = b.variants.reduce((s, v) => s + v.inventoryQuantity, 0); if (aInv !== bInv) return bInv - aInv; return (allReviewStats[String(b.id)]?.count ?? 0) - (allReviewStats[String(a.id)]?.count ?? 0) }).slice(0, 15)
     else if (activeCategory === 'Top Rated') list = [...list].filter(p => p.inStock).sort((a, b) => { const aStats = allReviewStats[String(a.id)] ?? { average: 0, count: 0 }; const bStats = allReviewStats[String(b.id)] ?? { average: 0, count: 0 }; if (aStats.average !== bStats.average) return bStats.average - aStats.average; return bStats.count - aStats.count }).slice(0, 12)
     else if (activeCategory === 'New Arrivals') list = [...list].sort((a, b) => b.id - a.id).slice(0, 12)
@@ -2192,7 +2200,7 @@ export default function DriveKitStore() {
                     </div>
                   )}
                   <div className="space-y-4 mb-6 max-h-72 overflow-y-auto pr-1">
-                    {cartItems.map(({ product, quantity, variantPrice }) => {
+                    {cartItems.map(({ product, quantity, variantPrice, variantId: cartVariantId }) => {
                       const itemPrice = variantPrice ?? product.minPrice
                       return (
                       <div key={product.id} className="flex gap-3 items-start">
@@ -2208,14 +2216,14 @@ export default function DriveKitStore() {
                           <p className="text-zinc-500 text-xs">${itemPrice.toFixed(2)} each</p>
                           <div className="flex items-center gap-2 mt-1.5">
                             <button
-                              onClick={() => updateCartQuantity(product.id, quantity - 1)}
+                              onClick={() => updateCartQuantity(product.id, quantity - 1, cartVariantId)}
                               className="w-6 h-6 rounded bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 flex items-center justify-center text-xs transition-colors"
                             >
                               <Minus size={12} />
                             </button>
                             <span className="text-white text-xs font-bold w-5 text-center">{quantity}</span>
                             <button
-                              onClick={() => updateCartQuantity(product.id, quantity + 1)}
+                              onClick={() => updateCartQuantity(product.id, quantity + 1, cartVariantId)}
                               className="w-6 h-6 rounded bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 flex items-center justify-center text-xs transition-colors"
                             >
                               <Plus size={12} />
@@ -2225,7 +2233,7 @@ export default function DriveKitStore() {
                         <div className="flex flex-col items-end gap-1">
                           <p className="text-white text-sm font-bold">${(itemPrice * quantity).toFixed(2)}</p>
                           <button
-                            onClick={() => removeFromCart(product.id)}
+                            onClick={() => removeFromCart(product.id, cartVariantId)}
                             className="text-zinc-600 hover:text-red-400 transition-colors p-0.5"
                           >
                             <X size={13} />
@@ -2332,8 +2340,9 @@ export default function DriveKitStore() {
                               window.location.href = body.url
                               return
                             }
-                          } catch {}
+                          } catch {} // Shopify checkout URL failed, but order was still placed — proceed to confirmation
                         }
+                        // Only clear cart now that order + checkout URL succeeded
                         setLastOrderNumber(placedOrderNumber)
                         setCartItems([])
                         setAppliedPromo(null)

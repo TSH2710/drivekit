@@ -116,7 +116,7 @@ export function shapeProduct(p: any) {
         const idx = parseInt(lifestyleMatch[1], 10)
         const localFile = genMap.get(idx)
         if (localFile) {
-          images = [{ id: img.id, src: `/api/generated-images/${localFile}`, alt: img.alt ?? p.title, width: img.width ?? 600, height: img.height ?? 600 }, ...images.filter(i => i.id !== img.id)]
+          images = [{ id: img.id, src: `/api/generated-images/${localFile}`, alt: img.alt ?? p.title, width: img.width ?? 600, height: img.height ?? 600 }, ...images.filter((i: any) => i.id !== img.id)]
           replaced = true
           break
         }
@@ -166,7 +166,10 @@ export function shapeProduct(p: any) {
       name: o.name,
       values: o.values ?? [],
     })),
-    minPrice: Math.min(...(p.variants ?? []).map((v: any) => parseFloat(v.price))),
+    minPrice: (() => {
+      const prices = (p.variants ?? []).map((v: any) => parseFloat(v.price)).filter((n: number) => !isNaN(n))
+      return prices.length > 0 ? Math.min(...prices) : 0
+    })(),
     inStock: true,
   }
 }
@@ -187,7 +190,7 @@ export async function autoGenerateProductImage(product: ShopifyProduct): Promise
 
   const title = product.title
   const productType = product.product_type || ''
-  const tags = typeof product.tags === 'string' ? product.tags : (product.tags ?? []).join(', ')
+  const tags = String(product.tags ?? '')
 
   const prompt = [
     `Professional product photography of "${title}",`,
@@ -250,15 +253,34 @@ export async function autoGenerateProductImage(product: ShopifyProduct): Promise
 
 // ── Cache Operations ──────────────────────────────────────────
 
+// In-memory cache to avoid re-reading from disk on every request
+let memoryCache: { products: ReturnType<typeof shapeProduct>[]; syncedAt: string } | null = null
+let memoryCacheTimestamp = 0
+const MEMORY_CACHE_TTL_MS = 60 * 1000 // 1 minute
+
 export function readCache(): { products: ReturnType<typeof shapeProduct>[], syncedAt: string } | null {
+  // Check in-memory cache first
+  const now = Date.now()
+  if (memoryCache && now - memoryCacheTimestamp < MEMORY_CACHE_TTL_MS) {
+    return memoryCache
+  }
   if (!existsSync(CACHE_FILE)) return null
   try {
     const raw = readFileSync(CACHE_FILE, 'utf-8')
     const data = JSON.parse(raw)
-    const age = Date.now() - new Date(data.syncedAt).getTime()
-    if (age < CACHE_MAX_AGE_MS && data.products?.length > 0) return data
+    const age = now - new Date(data.syncedAt).getTime()
+    if (age < CACHE_MAX_AGE_MS && data.products?.length > 0) {
+      memoryCache = data
+      memoryCacheTimestamp = now
+      return data
+    }
   } catch {}
   return null
+}
+
+export function invalidateMemoryCache() {
+  memoryCache = null
+  memoryCacheTimestamp = 0
 }
 
 export function writeCache(products: ReturnType<typeof shapeProduct>[]) {
@@ -273,6 +295,7 @@ export function writeCache(products: ReturnType<typeof shapeProduct>[]) {
     } catch {}
   }
   writeFileSync(CACHE_FILE, JSON.stringify({ products, syncedAt: new Date().toISOString() }, null, 2))
+  invalidateMemoryCache()
 }
 
 export async function fetchAndCacheProducts(fetchAllShopifyProducts: () => Promise<ShopifyProduct[]>) {

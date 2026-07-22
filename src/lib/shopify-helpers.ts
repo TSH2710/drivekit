@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { prisma } from './db'
 
 export interface ShopifyProduct {
   id: number
@@ -73,13 +74,11 @@ export function writeTokenCache(data: TokenCache) {
   writeFileSync(TOKEN_CACHE_FILE, JSON.stringify(data, null, 2))
   // Also persist to database so token survives Railway deploys
   try {
-    const { PrismaClient } = require('../generated/prisma') as typeof import('../generated/prisma')
-    const p = new PrismaClient()
-    p.siteContent.upsert({
+    prisma.siteContent.upsert({
       where: { key: 'shopify-token-cache' },
       update: { value: JSON.stringify(data) },
       create: { key: 'shopify-token-cache', value: JSON.stringify(data) },
-    }).then(() => p.$disconnect()).catch(() => p.$disconnect())
+    }).catch(() => {})
   } catch {}
 }
 
@@ -131,19 +130,15 @@ export async function ensureValidToken(): Promise<string> {
   } catch {}
   // Last resort: try restoring from database (survives Railway deploys)
   try {
-    const { PrismaClient } = require('../generated/prisma') as typeof import('../generated/prisma')
-    const p = new PrismaClient()
-    const record = await p.siteContent.findUnique({ where: { key: 'shopify-token-cache' } })
+    const record = await prisma.siteContent.findUnique({ where: { key: 'shopify-token-cache' } })
     if (record) {
       const data: TokenCache = JSON.parse(record.value)
       if (data.accessToken && await validateCurrentToken(data.accessToken)) {
         SHOPIFY_TOKEN = data.accessToken
         writeTokenCache(data)
-        await p.$disconnect()
         return data.accessToken
       }
     }
-    await p.$disconnect()
   } catch {}
   return getActiveToken()
 }

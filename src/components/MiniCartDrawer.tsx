@@ -19,8 +19,8 @@ interface MiniCartDrawerProps {
   open: boolean
   onClose: () => void
   cartItems: CartItem[]
-  updateQuantity: (productId: number, qty: number) => void
-  removeFromCart: (productId: number) => void
+  updateQuantity: (productId: number, qty: number, variantId?: number) => void
+  removeFromCart: (productId: number, variantId?: number) => void
   onCheckout: () => void
   freeShippingThreshold?: number
 }
@@ -157,14 +157,14 @@ export default function MiniCartDrawer({
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden">
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variantId)}
                             className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 transition-colors"
                           >
                             <Minus size={12} />
                           </button>
                           <span className="px-3 py-1 bg-zinc-900 text-xs font-bold">{item.quantity}</span>
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variantId)}
                             className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 transition-colors"
                           >
                             <Plus size={12} />
@@ -174,7 +174,7 @@ export default function MiniCartDrawer({
                       </div>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item.product.id)}
+                      onClick={() => removeFromCart(item.product.id, item.variantId)}
                       className="text-zinc-600 hover:text-red-400 transition-colors p-1 self-start"
                     >
                       <Trash2 size={14} />

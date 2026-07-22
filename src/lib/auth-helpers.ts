@@ -1,6 +1,9 @@
-import { createHash, randomBytes } from 'crypto'
+import { randomBytes, randomInt, pbkdf2Sync } from 'crypto'
 import { prisma } from './db'
 import type { Context } from 'hono'
+
+const SALT_ROUNDS = 100000
+const KEY_LENGTH = 64
 
 const sessions = new Map<string, { userId: string; email: string; role: string; createdAt: number }>()
 export const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
@@ -9,7 +12,16 @@ export const pendingSignups = new Map<string, { code: string; email: string; pas
 export const CODE_EXPIRY_MS = 10 * 60 * 1000
 
 export function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex')
+  const salt = randomBytes(16).toString('hex')
+  const hash = pbkdf2Sync(password, salt, SALT_ROUNDS, KEY_LENGTH, 'sha512').toString('hex')
+  return `${salt}:${hash}`
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(':')
+  if (!salt || !hash) return false
+  const verify = pbkdf2Sync(password, salt, SALT_ROUNDS, KEY_LENGTH, 'sha512').toString('hex')
+  return hash === verify
 }
 
 export function generateToken(): string {
@@ -17,7 +29,22 @@ export function generateToken(): string {
 }
 
 export function generateSixDigitCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000))
+  return String(randomInt(100000, 1000000))
+}
+
+// Simple in-memory rate limiter
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+
+export function checkRateLimit(key: string, maxAttempts = 5, windowMs = 60000): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs })
+    return true
+  }
+  if (entry.count >= maxAttempts) return false
+  entry.count++
+  return true
 }
 
 export function cleanExpiredSessions() {
