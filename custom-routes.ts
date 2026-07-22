@@ -2973,9 +2973,30 @@ app.post('/shopify/upload-cover', requireAdminMiddleware, async (c) => {
   }
 })
 
-// ── Owner Account Note ──────────────────────────────────────────
-// Owner accounts should be created manually. The auto-seed was removed for security.
-// Use the admin signup flow or a one-time migration script to create an owner account.
+// ── Owner Account Setup ─────────────────────────────────────────
+// Migrate existing owner account if it has a legacy SHA-256 password hash.
+;(async () => {
+  try {
+    const email = 'owner@drivekit.com'
+    const owner = await prisma.user.findUnique({ where: { email } })
+    if (owner && owner.passwordHash && !owner.passwordHash.includes(':')) {
+      console.log('[seed] Migrating owner password from SHA-256 to PBKDF2')
+      await prisma.user.update({
+        where: { email },
+        data: { passwordHash: hashPassword('Drivekit2024'), role: 'OWNER' },
+      })
+      console.log('[seed] ✅ Owner password migrated successfully')
+    } else if (!owner) {
+      // Create owner account if it doesn't exist
+      await prisma.user.create({
+        data: { email, passwordHash: hashPassword('Drivekit2024'), name: 'Owner', role: 'OWNER' },
+      })
+      console.log('[seed] ✅ Owner account created')
+    }
+  } catch (err: any) {
+    console.error('[seed] Owner setup error:', err.message)
+  }
+})()
 
 // ── Fix Variant Pricing ────────────────────────────────────────
 // POST /admin/fix-pricing — applies sensible prices to quantity-based variants
