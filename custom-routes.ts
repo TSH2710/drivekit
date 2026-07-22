@@ -3415,20 +3415,51 @@ app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
         let created = 0
         const errors: string[] = []
 
+        // Collect all variants to create (existing + new)
+        const existingVariantPayloads = (shopifyProduct.variants ?? []).map((v: any) => ({
+          id: v.id,
+          option1: v.option1 ?? v.title ?? 'Default Title',
+          option2: v.option2 ?? undefined,
+          option3: v.option3 ?? undefined,
+          price: String(v.price ?? '6.00'),
+        }))
+
+        const newVariantPayloads: any[] = []
         for (const variantTitle of variants) {
           if (existingTitles.has(variantTitle)) continue
-          try {
-            // Shopify requires option values when creating variants on products with options
-            const variantBody: any = { product_id: parseInt(shopifyId), title: variantTitle, price: '6.00', option1: variantTitle }
-            const res = await fetch(`${SHOPIFY_API}/products/${shopifyId}/variants.json`, {
-              method: 'POST',
-              headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ variant: variantBody }),
-            })
-            if (res.ok) created++
-            else { const errText = await res.text(); errors.push(`${variantTitle}: ${res.status} ${errText.slice(0, 100)}`) }
-          } catch (err: any) { errors.push(`${variantTitle}: ${err.message}`) }
-          await new Promise(r => setTimeout(r, 350))
+          newVariantPayloads.push({
+            option1: variantTitle,
+            price: '6.00',
+          })
+        }
+
+        if (newVariantPayloads.length === 0) {
+          cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created: 0, errors: [] })
+          cjRestoreJob!.progress++
+          continue
+        }
+
+        // Use product PUT to add all variants at once
+        try {
+          const allVariants = [...existingVariantPayloads, ...newVariantPayloads]
+          const res = await fetch(`${SHOPIFY_API}/products/${shopifyId}.json`, {
+            method: 'PUT',
+            headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product: {
+                id: parseInt(shopifyId),
+                variants: allVariants,
+              },
+            }),
+          })
+          if (res.ok) {
+            created = newVariantPayloads.length
+          } else {
+            const errText = await res.text()
+            errors.push(`PUT failed: ${res.status} ${errText.slice(0, 200)}`)
+          }
+        } catch (err: any) {
+          errors.push(`PUT error: ${err.message}`)
         }
 
         cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created, errors })
