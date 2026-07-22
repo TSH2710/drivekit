@@ -3012,77 +3012,88 @@ function parsePieceCount(title: string): number | null {
   return null
 }
 
+// Background pricing job state
+let pricingJob: { running: boolean; startedAt: string; progress: number; total: number; results: Array<{ title: string; updated: number; errors: string[] }>; done: boolean; error?: string } | null = null
+
 app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
+  if (pricingJob?.running) return c.json({ ok: false, message: 'Job already running', status: '/api/admin/fix-pricing/status' }, 202)
+
   const token = await ensureValidToken()
   if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
 
-  const rawProducts = await fetchAllShopifyProducts()
-  const active = rawProducts.filter((p: any) => p.status === 'active')
-  const results: Array<{ title: string; updated: number; errors: string[] }> = []
+  pricingJob = { running: true, startedAt: new Date().toISOString(), progress: 0, total: 0, results: [], done: false }
 
-  for (const p of active) {
-    const variants: Array<any> = p.variants ?? []
-    const errors: string[] = []
-    let updated = 0
+  ;(async () => {
+    try {
+      const rawProducts = await fetchAllShopifyProducts()
+      const active = rawProducts.filter((p: any) => p.status === 'active')
+      pricingJob!.total = active.length
 
-    // Determine base price (cheapest single-unit variant or overall cheapest)
-    const basePrice = Math.min(...variants.map(v => parseFloat(v.price)))
+      for (const p of active) {
+        const variants: Array<any> = p.variants ?? []
+        let updated = 0
+        const errors: string[] = []
+        const basePrice = Math.min(...variants.map(v => parseFloat(v.price)))
 
-    for (const v of variants) {
-      const oldPrice = parseFloat(v.price)
-      const count = parsePieceCount(v.title)
-      let newPrice: number
+        for (const v of variants) {
+          const oldPrice = parseFloat(v.price)
+          const count = parsePieceCount(v.title)
+          let newPrice: number
 
-      if (count === null || count === 1) {
-        // Color / style / single variant — just apply minimum price floor
-        newPrice = Math.max(oldPrice, 6.00)
-      } else if (count === -1) {
-        // "Set" or "Bundle" — 10% off sum
-        const uniqueSingles = [...new Set(variants.filter(x => !parsePieceCount(x.title)).map(v => parseFloat(v.price)))]
-        const sumSingles = uniqueSingles.reduce((a, b) => a + b, 0)
-        newPrice = Math.max(Math.round(sumSingles * 0.9 * 100) / 100, 6.00)
-      } else {
-        // Economies of scale: price = base × count^0.85
-        newPrice = basePrice * Math.pow(count, 0.85)
+          if (count === null || count === 1) {
+            newPrice = Math.max(oldPrice, 6.00)
+          } else if (count === -1) {
+            const uniqueSingles = [...new Set(variants.filter(x => !parsePieceCount(x.title)).map(v => parseFloat(v.price)))]
+            const sumSingles = uniqueSingles.reduce((a, b) => a + b, 0)
+            newPrice = Math.max(Math.round(sumSingles * 0.9 * 100) / 100, 6.00)
+          } else {
+            newPrice = basePrice * Math.pow(count, 0.85)
+          }
+
+          newPrice = Math.floor(newPrice) + 0.99
+          newPrice = Math.max(newPrice, 6.00)
+
+          if (Math.abs(newPrice - oldPrice) < 0.01) continue
+
+          try {
+            await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
+              method: 'PATCH',
+              headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ variant: { id: v.id, price: String(newPrice) } }),
+            })
+            updated++
+          } catch (err: any) {
+            errors.push(`variant ${v.id}: ${err.message}`)
+          }
+          await new Promise(r => setTimeout(r, 200))
+        }
+
+        if (updated > 0) {
+          pricingJob!.results.push({ title: p.title, updated, errors })
+        }
+        pricingJob!.progress++
       }
 
-      // Round to .99
-      newPrice = Math.floor(newPrice) + 0.99
-      newPrice = Math.max(newPrice, 6.00)
-
-      if (Math.abs(newPrice - oldPrice) < 0.01) continue
-
-      // PATCH each variant individually (reliable)
       try {
-        await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
-          method: 'PATCH',
-          headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variant: { id: v.id, price: String(newPrice) } }),
-        })
-        updated++
-      } catch (err: any) {
-        errors.push(`variant ${v.id}: ${err.message}`)
-      }
-      await new Promise(r => setTimeout(r, 300))
+        const fresh = await fetchAllShopifyProducts()
+        writeCache(fresh.filter((p: any) => p.status === 'active').map(shapeProduct))
+      } catch {}
+
+      pricingJob!.done = true
+      pricingJob!.running = false
+    } catch (err: any) {
+      pricingJob!.error = err.message
+      pricingJob!.running = false
+      pricingJob!.done = true
     }
+  })()
 
-    if (updated > 0) {
-      results.push({ title: p.title, updated, errors })
-    }
-  }
+  return c.json({ ok: true, message: 'Pricing fix started in background', status: '/api/admin/fix-pricing/status' }, 202)
+})
 
-  // Refresh local cache
-  try {
-    const rawProducts = await fetchAllShopifyProducts()
-    writeCache(rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct))
-  } catch {}
-
-  return c.json({
-    ok: true,
-    totalProductsChecked: active.length,
-    productsUpdated: results.length,
-    details: results,
-  })
+app.get('/admin/fix-pricing/status', requireAdminMiddleware, async (c) => {
+  if (!pricingJob) return c.json({ ok: true, message: 'No job run yet' })
+  return c.json({ ok: true, ...pricingJob })
 })
 
 // ── Promo Code Validation (server-side) ──────────────────────
