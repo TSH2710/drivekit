@@ -2,7 +2,7 @@
  * Creates missing Shopify variants from CJ CSV data.
  * Run directly: node scripts/create-variants.js
  */
-const TOKEN = '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';
+const TOKEN = process.env.SHOPIFY_ACCESS_TOKEN || '';
 const API = 'https://dc5byu-fy.myshopify.com/admin/api/2024-10';
 
 const fs = require('fs');
