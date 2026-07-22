@@ -26,7 +26,7 @@ import {
 } from './src/lib/email-helpers'
 
 import {
-  hashPassword, verifyPassword, generateToken, generateSixDigitCode,
+  hashPassword, verifyPassword, migratePasswordIfLegacy, generateToken, generateSixDigitCode,
   checkRateLimit, cleanExpiredSessions,
   getSessionUser, setSession, deleteSession, pendingSignups, CODE_EXPIRY_MS, SESSION_MAX_AGE_MS,
 } from './src/lib/auth-helpers'
@@ -1208,6 +1208,9 @@ app.post('/auth/signin', async (c) => {
 
   const user = await prisma.user.findUnique({ where: { email } })
   if (!user || !verifyPassword(password, user.passwordHash)) return c.json({ error: 'Invalid email or password' }, 401)
+
+  // Auto-migrate legacy SHA-256 hashes to PBKDF2 on successful login
+  migratePasswordIfLegacy(user.id, password, user.passwordHash).catch(() => {})
 
   const token = generateToken()
   setSession(token, user.id, user.email, user.role)
