@@ -3034,6 +3034,8 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
 
       // Round to .99 — common retail practice
       newPrice = Math.floor(newPrice) + 0.99
+      // Apply minimum price floor of $6
+      newPrice = Math.max(newPrice, 6.00)
 
       if (Math.abs(newPrice - oldPrice) > 0.01) {
         updates.push({ id: v.id, price: String(newPrice) })
