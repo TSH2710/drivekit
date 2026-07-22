@@ -3018,24 +3018,24 @@ let pricingJob: { running: boolean; startedAt: string; progress: number; total: 
 // Known missing single variants to restore (original data from products.json backup)
 // Format: productVariantGid → { title, price }
 const MISSING_VARIANTS: Record<string, Array<{ title: string; price: string; options?: Record<string, string> }>> = {
-  // Car Seat Neck Support Pillow variants that were deleted
+  // Car Seat Neck Support Pillow single variants that were deleted
   '15089798250862': [
-    { title: 'Beige', price: '24.99' },
-    { title: 'Beige Leather', price: '24.99' },
-    { title: 'Beige white', price: '24.99' },
-    { title: 'Black', price: '24.99' },
-    { title: 'Black Leather', price: '24.99' },
-    { title: 'Black red', price: '24.99' },
-    { title: 'Black red Leather', price: '24.99' },
-    { title: 'Brown', price: '24.99' },
-    { title: 'Brown Leather', price: '24.99' },
-    { title: 'Coffee', price: '24.99' },
-    { title: 'Coffee Leather', price: '24.99' },
-    { title: 'Grey', price: '24.99' },
+    { title: 'Beige', price: '24.99', options: { option1: 'Beige', option2: '', option3: '' } },
+    { title: 'Beige Leather', price: '24.99', options: { option1: 'Beige Leather', option2: '', option3: '' } },
+    { title: 'Beige white', price: '24.99', options: { option1: 'Beige white', option2: '', option3: '' } },
+    { title: 'Black', price: '24.99', options: { option1: 'Black', option2: '', option3: '' } },
+    { title: 'Black Leather', price: '24.99', options: { option1: 'Black Leather', option2: '', option3: '' } },
+    { title: 'Black red', price: '24.99', options: { option1: 'Black red', option2: '', option3: '' } },
+    { title: 'Black red Leather', price: '24.99', options: { option1: 'Black red Leather', option2: '', option3: '' } },
+    { title: 'Brown', price: '24.99', options: { option1: 'Brown', option2: '', option3: '' } },
+    { title: 'Brown Leather', price: '24.99', options: { option1: 'Brown Leather', option2: '', option3: '' } },
+    { title: 'Coffee', price: '24.99', options: { option1: 'Coffee', option2: '', option3: '' } },
+    { title: 'Coffee Leather', price: '24.99', options: { option1: 'Coffee Leather', option2: '', option3: '' } },
+    { title: 'Grey', price: '24.99', options: { option1: 'Grey', option2: '', option3: '' } },
   ],
   // Emergency Snow Tire Chains — 1set was deleted
   '15089799332206': [
-    { title: '1set', price: '24.99' },
+    { title: '1set', price: '24.99', options: { option1: '1set', option2: '', option3: '' } },
   ],
 }
 
@@ -3062,10 +3062,16 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
             }).then(r => r.json())
             const exists = existing?.variants?.some((ev: any) => ev.title === v.title)
             if (!exists) {
+              const variantPayload: any = { product_id: parseInt(productId), title: v.title, price: v.price }
+              if (v.options) {
+                if (v.options.option1) variantPayload.option1 = v.options.option1
+                if (v.options.option2) variantPayload.option2 = v.options.option2
+                if (v.options.option3) variantPayload.option3 = v.options.option3
+              }
               await fetch(`${SHOPIFY_API}/products/${productId}/variants.json`, {
                 method: 'POST',
                 headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ variant: { product_id: parseInt(productId), title: v.title, price: v.price } }),
+                body: JSON.stringify({ variant: variantPayload }),
               })
               console.log(`[fix-pricing] Restored variant "${v.title}" for product ${productId}`)
             }
