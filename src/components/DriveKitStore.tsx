@@ -716,6 +716,24 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
             <h1 className="text-3xl font-black text-white leading-tight mb-3">{product.title}</h1>
             <ProductMeta product={product} />
 
+            {/* Social proof */}
+            <div className="flex items-center gap-4 mt-3 mb-4">
+              <div className="flex items-center gap-2 text-sm text-zinc-400">
+                <div className="flex -space-x-1.5">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-red-400 to-orange-500 border border-zinc-900 flex items-center justify-center">
+                      <span className="text-[8px] font-bold text-white">⚡</span>
+                    </div>
+                  ))}
+                </div>
+                <span><span className="text-red-400 font-bold">{9 + (product.id % 7)}</span> people are viewing this</span>
+              </div>
+              <div className="flex items-center gap-1 text-sm text-zinc-500">
+                <Check size={14} className="text-emerald-400" />
+                <span>Low stock — <span className="text-emerald-400 font-semibold">{7 + (product.id % 5)}</span> in cart</span>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3 mt-4 mb-5">
               <span className="text-4xl font-black text-white">${formatPrice(displayPrice)}</span>
               {displayCompareAt && displayCompareAt > displayPrice && (

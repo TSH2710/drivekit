@@ -3418,13 +3418,15 @@ app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
         for (const variantTitle of variants) {
           if (existingTitles.has(variantTitle)) continue
           try {
+            // Shopify requires option values when creating variants on products with options
+            const variantBody: any = { product_id: parseInt(shopifyId), title: variantTitle, price: '6.00', option1: variantTitle }
             const res = await fetch(`${SHOPIFY_API}/products/${shopifyId}/variants.json`, {
               method: 'POST',
               headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ variant: { product_id: parseInt(shopifyId), title: variantTitle, price: '6.00' } }),
+              body: JSON.stringify({ variant: variantBody }),
             })
             if (res.ok) created++
-            else { const errText = await res.text(); errors.push(`${variantTitle}: ${res.status}`) }
+            else { const errText = await res.text(); errors.push(`${variantTitle}: ${res.status} ${errText.slice(0, 100)}`) }
           } catch (err: any) { errors.push(`${variantTitle}: ${err.message}`) }
           await new Promise(r => setTimeout(r, 350))
         }
