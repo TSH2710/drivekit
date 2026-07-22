@@ -3015,17 +3015,24 @@ function parsePieceCount(title: string): number | null {
 // Background pricing job state
 let pricingJob: { running: boolean; startedAt: string; progress: number; total: number; results: Array<{ title: string; updated: number; errors: string[] }>; done: boolean; error?: string } | null = null
 
-// Original product data for variant recovery (from products.json)
-// Loaded and matched by title at startup
-const ORIGINAL_PRODUCTS_PATH = join(process.cwd(), 'products.json')
-let originalProductsData: Array<any> | null = null
-try {
-  if (existsSync(ORIGINAL_PRODUCTS_PATH)) {
-    originalProductsData = JSON.parse(readFileSync(ORIGINAL_PRODUCTS_PATH, 'utf-8'))
-    console.log('[fix-pricing] Loaded ' + originalProductsData.length + ' original products from products.json')
+function loadOriginalProducts(): Array<any> | null {
+  try {
+    const origPath = join(process.cwd(), 'products.json')
+    if (!existsSync(origPath)) {
+      console.warn('[fix-pricing] products.json not found at', origPath)
+      return null
+    }
+    const data = JSON.parse(readFileSync(origPath, 'utf-8'))
+    if (!Array.isArray(data) || data.length === 0) {
+      console.warn('[fix-pricing] products.json is not a valid array')
+      return null
+    }
+    console.log('[fix-pricing] Loaded ' + data.length + ' original products')
+    return data
+  } catch (e) {
+    console.error('[fix-pricing] Failed to load products.json:', e)
+    return null
   }
-} catch (e) {
-  console.error('[fix-pricing] Failed to load products.json:', e)
 }
 
 app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
@@ -3040,6 +3047,7 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
     try {
       // Step 1: Restore missing variants by cross-referencing products.json
       let restoredCount = 0
+      const originalProductsData = loadOriginalProducts()
       if (originalProductsData) {
         const rawProducts = await fetchAllShopifyProducts()
         const liveByTitle: Record<string, any> = {}
