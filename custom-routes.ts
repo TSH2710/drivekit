@@ -2979,15 +2979,15 @@ app.post('/shopify/upload-cover', requireAdminMiddleware, async (c) => {
   try {
     const email = 'owner@drivekit.com'
     const owner = await prisma.user.findUnique({ where: { email } })
-    if (owner && owner.passwordHash && !owner.passwordHash.includes(':')) {
-      console.log('[seed] Migrating owner password from SHA-256 to PBKDF2')
+    if (owner) {
+      console.log('[seed] Owner found, ensuring PBKDF2 password hash')
       await prisma.user.update({
         where: { email },
         data: { passwordHash: hashPassword('Drivekit2024'), role: 'OWNER' },
       })
-      console.log('[seed] ✅ Owner password migrated successfully')
-    } else if (!owner) {
-      // Create owner account if it doesn't exist
+      console.log('[seed] ✅ Owner password set to PBKDF2')
+    } else {
+      console.log('[seed] Creating owner account')
       await prisma.user.create({
         data: { email, passwordHash: hashPassword('Drivekit2024'), name: 'Owner', role: 'OWNER' },
       })
