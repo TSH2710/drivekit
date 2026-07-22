@@ -497,10 +497,31 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
   }, [product, selectedOptions])
 
   useEffect(() => {
-    if (!matchedVariant?.imageId) return
-    const imgIdx = product.images.findIndex((img) => img.id === matchedVariant.imageId)
-    if (imgIdx >= 0) setActiveImgIdx(imgIdx)
-  }, [matchedVariant?.imageId])
+    // Try to find image that matches the selected variant
+    if (matchedVariant) {
+      // First try exact imageId match
+      if (matchedVariant.imageId) {
+        const imgIdx = product.images.findIndex((img) => img.id === matchedVariant.imageId)
+        if (imgIdx >= 0) { setActiveImgIdx(imgIdx); return }
+      }
+      // Fallback: try matching variant title keywords against image alt text
+      const variantWords = matchedVariant.title.toLowerCase().split(/\s+/).filter(w => w.length > 2)
+      if (variantWords.length > 0) {
+        // Score each image by how many variant keywords appear in its alt text
+        const scored = product.images.map((img, idx) => {
+          const alt = (img.alt || '').toLowerCase()
+          const score = variantWords.reduce((s, w) => s + (alt.includes(w) ? 1 : 0), 0)
+          return { idx, score }
+        }).sort((a, b) => b.score - a.score)
+        // Use highest-scoring image if it's a good match
+        if (scored[0]?.score >= variantWords.length * 0.5) {
+          setActiveImgIdx(scored[0].idx)
+          return
+        }
+      }
+      // Last resort: keep current image
+    }
+  }, [matchedVariant?.id])
 
   const displayPrice = matchedVariant?.price ?? product.minPrice
   const displayCompareAt = matchedVariant?.compareAtPrice ?? getCompareAtPrice(product.variants)
