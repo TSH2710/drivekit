@@ -2977,6 +2977,109 @@ app.post('/shopify/upload-cover', requireAdminMiddleware, async (c) => {
 // Owner accounts should be created manually. The auto-seed was removed for security.
 // Use the admin signup flow or a one-time migration script to create an owner account.
 
+// ── Fix Variant Pricing ────────────────────────────────────────
+// POST /admin/fix-pricing — applies sensible prices to quantity-based variants
+// e.g. 2pcs should cost more than 1pcs, but less than 2× single price.
+
+function parsePieceCount(title: string): number | null {
+  const clean = title.toLowerCase().replace(/[^a-z0-9]/g, ' ')
+  // Match patterns like "2pcs", "2 pieces", "4 set", "10 pack"
+  const m = clean.match(/(\d+)\s*(pcs|pc|piece|pieces|pack|pairs?|set|count|qty|quantity)/)
+  if (m) return parseInt(m[1], 10)
+  // Match "Set" or "Bundle" without a number
+  if (/\b(set|bundle|all)\b/.test(clean)) return -1 // sentinel for "all items"
+  return null
+}
+
+app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const rawProducts = await fetchAllShopifyProducts()
+  const active = rawProducts.filter((p: any) => p.status === 'active')
+  const results: Array<{ title: string; updated: number; errors: string[] }> = []
+
+  for (const p of active) {
+    const variants: Array<any> = p.variants ?? []
+    if (variants.length < 2) continue
+
+    // Find base price — the cheapest single-unit variant
+    const singles = variants.filter(v => !parsePieceCount(v.title))
+    const basePrice = singles.length > 0
+      ? Math.min(...singles.map(v => parseFloat(v.price)))
+      : Math.min(...variants.map(v => parseFloat(v.price)))
+
+    const updates: Array<{ id: number; price: string }> = []
+    const errors: string[] = []
+
+    for (const v of variants) {
+      const count = parsePieceCount(v.title)
+      const oldPrice = parseFloat(v.price)
+      let newPrice: number
+
+      if (count === null) {
+        // Color / style variant only — match base price
+        newPrice = basePrice
+      } else if (count === -1) {
+        // "Set" or "Bundle" — 10% off sum of all unique singles
+        const uniqueSingles = new Set(variants.filter(x => !parsePieceCount(x.title)).map(v => parseFloat(v.price)))
+        const sumSingles = [...uniqueSingles].reduce((a, b) => a + b, 0)
+        newPrice = Math.round(sumSingles * 0.9 * 100) / 100
+      } else if (count === 1) {
+        newPrice = basePrice
+      } else {
+        // Economies of scale: price = base × count^0.85
+        newPrice = Math.round(basePrice * Math.pow(count, 0.85) * 100) / 100
+      }
+
+      // Round to .99 — common retail practice
+      newPrice = Math.floor(newPrice) + 0.99
+
+      if (Math.abs(newPrice - oldPrice) > 0.01) {
+        updates.push({ id: v.id, price: String(newPrice) })
+      }
+    }
+
+    // Apply updates in batches
+    for (let i = 0; i < updates.length; i += 10) {
+      const batch = updates.slice(i, i + 10)
+      try {
+        await fetch(`${SHOPIFY_API}/products/${p.id}.json`, {
+          method: 'PUT',
+          headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product: {
+              id: p.id,
+              variants: batch.map(u => ({ id: u.id, price: u.price })),
+            },
+          }),
+        })
+      } catch (err: any) {
+        errors.push(`batch ${i / 10 + 1}: ${err.message}`)
+      }
+      await new Promise(r => setTimeout(r, 500))
+    }
+
+    if (updates.length > 0) {
+      results.push({ title: p.title, updated: updates.length, errors })
+    }
+  }
+
+  // Refresh cache after all updates
+  try {
+    const rawProducts = await fetchAllShopifyProducts()
+    const shaped = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
+    writeCache(shaped)
+  } catch {}
+
+  return c.json({
+    ok: true,
+    totalProductsChecked: active.length,
+    productsUpdated: results.length,
+    details: results,
+  })
+})
+
 // ── Promo Code Validation (server-side) ──────────────────────
 
 const PROMO_CODES: Record<string, { discount: number; label: string }> = {
