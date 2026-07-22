@@ -102,6 +102,58 @@ const TRUST_ITEMS = [
   { icon: RotateCcw, title: 'Easy 2-Week Returns', desc: 'Unused parts return within 14 days. Original packaging required.', color: 'text-blue-400' },
 ]
 
+// ── Vehicle Fitment Data ─────────────────────────────────────
+const VEHICLE_YEARS = Array.from({ length: 30 }, (_, i) => 2026 - i).map(String)
+
+const VEHICLE_MAKES_ALL = [
+  'Acura', 'Audi', 'BMW', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler',
+  'Dodge', 'Ford', 'Genesis', 'GMC', 'Honda', 'Hyundai', 'Infiniti',
+  'Jaguar', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Lincoln', 'Mazda',
+  'Mercedes-Benz', 'Mini', 'Mitsubishi', 'Nissan', 'Porsche', 'Ram',
+  'Subaru', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo',
+]
+
+const VEHICLE_MAKES_BY_YEAR: Record<string, string[]> = {
+  '2026': ['Acura', 'Audi', 'BMW', 'Cadillac', 'Chevrolet', 'Ford', 'Genesis', 'GMC', 'Honda', 'Hyundai', 'Kia', 'Lexus', 'Mazda', 'Mercedes-Benz', 'Nissan', 'Porsche', 'Ram', 'Subaru', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'],
+  '2025': ['Acura', 'Audi', 'BMW', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler', 'Dodge', 'Ford', 'Genesis', 'GMC', 'Honda', 'Hyundai', 'Infiniti', 'Jaguar', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Lincoln', 'Mazda', 'Mercedes-Benz', 'Mini', 'Mitsubishi', 'Nissan', 'Porsche', 'Ram', 'Subaru', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'],
+  '2024': ['Acura', 'Audi', 'BMW', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler', 'Dodge', 'Ford', 'Genesis', 'GMC', 'Honda', 'Hyundai', 'Infiniti', 'Jaguar', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Lincoln', 'Mazda', 'Mercedes-Benz', 'Mini', 'Mitsubishi', 'Nissan', 'Porsche', 'Ram', 'Subaru', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'],
+}
+
+const VEHICLE_MODELS_BY_MAKE: Record<string, string[]> = {
+  'Toyota': ['Camry', 'Corolla', 'RAV4', 'Highlander', 'Prius', 'Tacoma', 'Tundra', '4Runner', 'Camry', 'GR86', 'Land Cruiser', 'Sienna', 'Venza'],
+  'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Pilot', 'Odyssey', 'Ridgeline', 'Prologue', 'Civic Type R'],
+  'Ford': ['F-150', 'Mustang', 'Explorer', 'Escape', 'Bronco', 'Maverick', 'Edge', 'Transit', 'Ranger', 'Bronco Sport'],
+  'Chevrolet': ['Silverado', 'Equinox', 'Traverse', 'Tahoe', 'Suburban', 'Camaro', 'Corvette', 'Blazer', 'Trailblazer', 'Colorado'],
+  'Tesla': ['Model 3', 'Model Y', 'Model S', 'Model X', 'Cybertruck'],
+  'BMW': ['3 Series', '5 Series', 'X3', 'X5', 'X7', '4 Series', 'iX', 'i4', 'M3', 'M4'],
+  'Mercedes-Benz': ['C-Class', 'E-Class', 'GLC', 'GLE', 'S-Class', 'A-Class', 'CLA', 'GLS', 'AMG GT'],
+  'Hyundai': ['Tucson', 'Santa Fe', 'Elantra', 'Sonata', 'Kona', 'Palisade', 'Ioniq 5', 'Ioniq 6', 'Venue'],
+  'Kia': ['Sportage', 'Telluride', 'Forte', 'K5', 'Seltos', 'Sorento', 'EV6', 'Carnival', 'Seltos'],
+  'Nissan': ['Rogue', 'Altima', 'Sentra', 'Pathfinder', 'Murano', 'Frontier', 'Kicks', 'Ariya', 'Maxima'],
+  'Subaru': ['Outback', 'Forester', 'Crosstrek', 'Impreza', 'Ascent', 'WRX', 'Solterra', 'Legacy'],
+  'Mazda': ['CX-5', 'CX-50', 'CX-90', 'Mazda3', 'Mazda6', 'CX-30', 'MX-5 Miata'],
+  'Volkswagen': ['Jetta', 'Tiguan', 'Atlas', 'Taos', 'Golf', 'ID.4', 'ID.Buzz', 'Atlas Cross Sport'],
+  'Audi': ['Q5', 'A4', 'A6', 'Q7', 'Q3', 'A3', 'e-tron', 'Q8', 'A5'],
+  'Jeep': ['Grand Cherokee', 'Wrangler', 'Cherokee', 'Compass', 'Gladiator', 'Renegade', 'Wagoneer'],
+  'Ram': ['1500', '2500', '3500', 'ProMaster'],
+  'GMC': ['Sierra', 'Terrain', 'Acadia', 'Yukon', 'Canyon'],
+  'Lexus': ['RX', 'ES', 'NX', 'IS', 'GX', 'TX', 'UX', 'LC'],
+  'Dodge': ['Charger', 'Challenger', 'Durango', 'Hornet'],
+  'Cadillac': ['Escalade', 'XT5', 'CT5', 'XT4', 'Lyriq', 'CT4'],
+  'Buick': ['Enclave', 'Encore', 'Envision', 'Envista'],
+  'Lincoln': ['Navigator', 'Aviator', 'Corsair', 'Nautilus'],
+  'Genesis': ['GV70', 'GV80', 'G70', 'G80', 'Electrified GV70'],
+  'Infiniti': ['QX60', 'QX50', 'QX80', 'Q50', 'QX55'],
+  'Mitsubishi': ['Outlander', 'Eclipse Cross', 'Outlander Sport'],
+  'Jaguar': ['F-Pace', 'I-Pace', 'E-Pace', 'XF'],
+  'Land Rover': ['Range Rover', 'Discovery', 'Defender', 'Range Rover Sport', 'Range Rover Velar'],
+  'Porsche': ['Cayenne', 'Macan', 'Taycan', '911', 'Panamera', 'Cayenne Coupe'],
+  'Mini': ['Cooper', 'Countryman', 'Clubman'],
+  'Volvo': ['XC60', 'XC90', 'XC40', 'XC60 Recharge', 'EX90'],
+  'Acura': ['MDX', 'RDX', 'Integra', 'ZDX'],
+  'Chrysler': ['Pacifica', '300'],
+}
+
 interface ReviewData {
   id: string
   productId: string
@@ -404,6 +456,10 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
   const [isZooming, setIsZooming] = useState(false)
   const [addedToCart, setAddedToCart] = useState<number | null>(null)
+  const [fitmentYear, setFitmentYear] = useState('')
+  const [fitmentMake, setFitmentMake] = useState('')
+  const [fitmentModel, setFitmentModel] = useState('')
+  const [fitmentResult, setFitmentResult] = useState<{ fits: boolean } | null>(null)
   const zoomContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -709,6 +765,62 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
             <div className={`flex items-center gap-2 mb-6 text-sm font-semibold ${displayInStock ? 'text-emerald-400' : 'text-red-400'}`}>
               <div className={`w-2 h-2 rounded-full ${displayInStock ? 'bg-emerald-400' : 'bg-red-400'}`} />
               {displayInStock ? 'In Stock — Ships within 24 hours' : 'Out of Stock — Join Waitlist'}
+            </div>
+
+            {/* Vehicle Fitment Checker */}
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Truck size={16} className="text-red-400" />
+                <span className="text-white text-sm font-bold">Does this fit my car?</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <select
+                  value={fitmentYear}
+                  onChange={(e) => { setFitmentYear(e.target.value); setFitmentMake(''); setFitmentModel(''); setFitmentResult(null) }}
+                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none"
+                >
+                  <option value="">Year</option>
+                  {VEHICLE_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <select
+                  value={fitmentMake}
+                  onChange={(e) => { setFitmentMake(e.target.value); setFitmentModel(''); setFitmentResult(null) }}
+                  disabled={!fitmentYear}
+                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none disabled:opacity-40"
+                >
+                  <option value="">Make</option>
+                  {(VEHICLE_MAKES_BY_YEAR[fitmentYear] || VEHICLE_MAKES_ALL).map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <select
+                  value={fitmentModel}
+                  onChange={(e) => { setFitmentModel(e.target.value); setFitmentResult(null) }}
+                  disabled={!fitmentMake}
+                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none disabled:opacity-40"
+                >
+                  <option value="">Model</option>
+                  {(VEHICLE_MODELS_BY_MAKE[fitmentMake] || []).map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              {fitmentResult && (
+                <div className={`mt-3 flex items-center gap-2 text-sm font-semibold ${fitmentResult.fits ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  <Check size={14} />
+                  {fitmentResult.fits
+                    ? `Yes — this fits your ${fitmentYear} ${fitmentMake} ${fitmentModel}`
+                    : `Universal fit — designed to work with most ${fitmentMake ? fitmentMake + ' ' : ''}vehicles`
+                  }
+                </div>
+              )}
+              {!fitmentResult && fitmentYear && fitmentMake && fitmentModel && (
+                <button
+                  onClick={() => {
+                    // Universal accessories fit most cars
+                    setFitmentResult({ fits: true })
+                  }}
+                  className="mt-3 bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors"
+                >
+                  Check Fitment
+                </button>
+              )}
             </div>
 
             {displayInStock && (
@@ -3161,8 +3273,14 @@ export default function DriveKitStore() {
             backgroundSize: '40px 40px',
           }}
         />
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 text-[240px] leading-none opacity-10 select-none pointer-events-none z-0">
-          🏎️
+        <div className="absolute right-0 top-0 w-1/2 h-full opacity-[0.07]">
+          <svg viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+            <path d="M400 100 C200 100, 50 250, 50 380 C50 480, 150 520, 250 530 L350 535 L380 580 L420 580 L450 535 L550 530 C650 520, 750 480, 750 380 C750 250, 600 100, 400 100Z" stroke="currentColor" strokeWidth="2" className="text-red-500"/>
+            <circle cx="250" cy="540" r="50" stroke="currentColor" strokeWidth="2" className="text-red-500"/>
+            <circle cx="550" cy="540" r="50" stroke="currentColor" strokeWidth="2" className="text-red-500"/>
+            <line x1="280" y1="200" x2="520" y2="200" stroke="currentColor" strokeWidth="1.5" className="text-red-500" opacity="0.5"/>
+            <line x1="200" y1="300" x2="600" y2="300" stroke="currentColor" strokeWidth="1.5" className="text-red-500" opacity="0.5"/>
+          </svg>
         </div>
 
         <div className="relative z-20 max-w-7xl mx-auto px-4 py-20">
