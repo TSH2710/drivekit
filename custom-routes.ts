@@ -3415,51 +3415,50 @@ app.post('/admin/cj-restore', requireAdminMiddleware, async (c) => {
         let created = 0
         const errors: string[] = []
 
-        // Collect all variants to create (existing + new)
-        const existingVariantPayloads = (shopifyProduct.variants ?? []).map((v: any) => ({
-          id: v.id,
-          option1: v.option1 ?? v.title ?? 'Default Title',
-          option2: v.option2 ?? undefined,
-          option3: v.option3 ?? undefined,
-          price: String(v.price ?? '6.00'),
-        }))
-
-        const newVariantPayloads: any[] = []
-        for (const variantTitle of variants) {
-          if (existingTitles.has(variantTitle)) continue
-          newVariantPayloads.push({
-            option1: variantTitle,
-            price: '6.00',
-          })
-        }
-
-        if (newVariantPayloads.length === 0) {
+        // Use Shopify GraphQL API to create variants — more reliable than REST
+        const variantsToCreate = variants.filter((v: string) => !existingTitles.has(v))
+        if (variantsToCreate.length === 0) {
           cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created: 0, errors: [] })
           cjRestoreJob!.progress++
           continue
         }
 
-        // Use product PUT to add all variants at once
-        try {
-          const allVariants = [...existingVariantPayloads, ...newVariantPayloads]
-          const res = await fetch(`${SHOPIFY_API}/products/${shopifyId}.json`, {
-            method: 'PUT',
-            headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              product: {
-                id: parseInt(shopifyId),
-                variants: allVariants,
-              },
-            }),
-          })
-          if (res.ok) {
-            created = newVariantPayloads.length
-          } else {
-            const errText = await res.text()
-            errors.push(`PUT failed: ${res.status} ${errText.slice(0, 200)}`)
+        // Build GraphQL product variant inputs
+        const variantInputs = variantsToCreate.map((v: string) => ({
+          optionValues: [{ optionName: 'Title', name: v }],
+          price: '6.00',
+        }))
+
+        // Create in batches of 50 (GraphQL limit)
+        for (let i = 0; i < variantInputs.length; i += 50) {
+          const batch = variantInputs.slice(i, i + 50)
+          try {
+            const gqlId = `gid://shopify/Product/${shopifyId}`
+            const res = await fetch(`${SHOPIFY_API.replace('/admin/api/2024-10', '')}/admin/api/2024-10/graphql.json`, {
+              method: 'POST',
+              headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                query: `mutation productVariantsBulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+                  productVariantsBulkCreate(productId: $productId, variants: $variants) {
+                    productVariants { id title }
+                    userErrors { field message }
+                  }
+                }`,
+                variables: { productId: gqlId, variants: batch },
+              }),
+            })
+            const data = await res.json()
+            const userErrors = data?.data?.productVariantsBulkCreate?.userErrors ?? []
+            const createdVariants = data?.data?.productVariantsBulkCreate?.productVariants ?? []
+            if (userErrors.length > 0) {
+              errors.push(`GQL batch ${i}: ${userErrors.map((e: any) => e.message).join(', ')}`)
+            } else {
+              created += createdVariants.length
+            }
+          } catch (err: any) {
+            errors.push(`GQL error: ${err.message}`)
           }
-        } catch (err: any) {
-          errors.push(`PUT error: ${err.message}`)
+          await new Promise(r => setTimeout(r, 500))
         }
 
         cjRestoreJob!.results.push({ cjTitle, shopifyTitle: shopifyProduct.title, created, errors })
