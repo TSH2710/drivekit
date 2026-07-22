@@ -497,31 +497,29 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
   }, [product, selectedOptions])
 
   useEffect(() => {
-    // Try to find image that matches the selected variant
-    if (matchedVariant) {
-      // First try exact imageId match
-      if (matchedVariant.imageId) {
-        const imgIdx = product.images.findIndex((img) => img.id === matchedVariant.imageId)
-        if (imgIdx >= 0) { setActiveImgIdx(imgIdx); return }
-      }
-      // Fallback: try matching variant title keywords against image alt text
-      const variantWords = matchedVariant.title.toLowerCase().split(/\s+/).filter(w => w.length > 2)
-      if (variantWords.length > 0) {
-        // Score each image by how many variant keywords appear in its alt text
-        const scored = product.images.map((img, idx) => {
-          const alt = (img.alt || '').toLowerCase()
-          const score = variantWords.reduce((s, w) => s + (alt.includes(w) ? 1 : 0), 0)
-          return { idx, score }
-        }).sort((a, b) => b.score - a.score)
-        // Use highest-scoring image if it's a good match
-        if (scored[0]?.score >= variantWords.length * 0.5) {
-          setActiveImgIdx(scored[0].idx)
-          return
-        }
-      }
-      // Last resort: keep current image
+    if (!matchedVariant || product.images.length === 0) return
+
+    // 1) Exact imageId match (variant has a dedicated image in Shopify)
+    if (matchedVariant.imageId) {
+      const imgIdx = product.images.findIndex((img) => img.id === matchedVariant.imageId)
+      if (imgIdx >= 0) { setActiveImgIdx(imgIdx); return }
     }
-  }, [matchedVariant?.id])
+
+    // 2) Distribute variants across available images deterministically
+    //    First, skip the "lifestyle" image (usually index 0) since it's a composite
+    const imagePool = product.images.slice(1).length > 0
+      ? product.images.slice(1)
+      : product.images
+
+    // Hash the variant title to a stable index within the image pool
+    const variantIdx = product.variants.findIndex((v) => v.id === matchedVariant.id)
+    const stableIdx = variantIdx >= 0
+      ? variantIdx % imagePool.length          // each variant gets a different image
+      : Math.abs(matchedVariant.title.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), 0)) % imagePool.length
+
+    const actualIdx = product.images.indexOf(imagePool[stableIdx])
+    if (actualIdx >= 0) setActiveImgIdx(actualIdx)
+  }, [matchedVariant?.id, product.images, product.variants])
 
   const displayPrice = matchedVariant?.price ?? product.minPrice
   const displayCompareAt = matchedVariant?.compareAtPrice ?? getCompareAtPrice(product.variants)
