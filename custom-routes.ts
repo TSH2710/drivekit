@@ -3019,7 +3019,7 @@ let pricingJob: { running: boolean; startedAt: string; progress: number; total: 
 // Format: productVariantGid → { title, price }
 const MISSING_VARIANTS: Record<string, Array<{ title: string; price: string; options?: Record<string, string> }>> = {
   // Car Seat Neck Support Pillow variants that were deleted
-  'gid://shopify/Product/9851761959150': [
+  '15089798250862': [
     { title: 'Beige', price: '24.99' },
     { title: 'Beige Leather', price: '24.99' },
     { title: 'Beige white', price: '24.99' },
@@ -3034,7 +3034,7 @@ const MISSING_VARIANTS: Record<string, Array<{ title: string; price: string; opt
     { title: 'Grey', price: '24.99' },
   ],
   // Emergency Snow Tire Chains — 1set was deleted
-  'gid://shopify/Product/9851765555438': [
+  '15089799332206': [
     { title: '1set', price: '24.99' },
   ],
 }
