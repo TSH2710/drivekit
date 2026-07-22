@@ -3015,6 +3015,56 @@ function parsePieceCount(title: string): number | null {
 // Background pricing job state
 let pricingJob: { running: boolean; startedAt: string; progress: number; total: number; results: Array<{ title: string; updated: number; errors: string[] }>; done: boolean; error?: string } | null = null
 
+function parseCjCsvLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') { inQuotes = !inQuotes }
+    else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = '' }
+    else { current += ch }
+  }
+  result.push(current.trim())
+  return result
+}
+
+function loadCjProducts(): Record<string, string[]> {
+  const csvPath = join(process.cwd(), 'cj-products.csv')
+  if (!existsSync(csvPath)) {
+    console.log('[fix-pricing] cj-products.csv not found')
+    return {}
+  }
+  const raw = readFileSync(csvPath, 'utf-8')
+  const lines = raw.split('\n').filter(l => l.trim()).slice(1) // skip header
+  const byTitle: Record<string, string[]> = {}
+  for (const line of lines) {
+    const cols = parseCjCsvLine(line)
+    const cjTitle = cols[0] || ''
+    const spec = cols[3] || ''
+    if (!cjTitle || !spec) continue
+    if (!byTitle[cjTitle]) byTitle[cjTitle] = []
+    byTitle[cjTitle].push(spec)
+  }
+  return byTitle
+}
+
+function normalizeTitle(t: string): string {
+  return t.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function titleSimilarity(a: string, b: string): number {
+  const na = normalizeTitle(a)
+  const nb = normalizeTitle(b)
+  if (na === nb) return 1
+  if (na.includes(nb) || nb.includes(na)) return 0.9
+  const tokensA = new Set(na.split(' '))
+  const tokensB = new Set(nb.split(' '))
+  const intersection = [...tokensA].filter(t => tokensB.has(t))
+  const union = new Set([...tokensA, ...tokensB])
+  return intersection.length / union.size
+}
+
 function loadOriginalProducts(): Array<any> | null {
   try {
     const origPath = join(process.cwd(), 'products.json')
@@ -3045,8 +3095,51 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
 
   ;(async () => {
     try {
-      // Step 1: Restore missing variants by cross-referencing products.json
+      // Step 1a: Restore missing variants from CJ CSV
       let restoredCount = 0
+      const cjProducts = loadCjProducts()
+      const cjTitles = Object.keys(cjProducts)
+      console.log(`[fix-pricing] Loaded ${cjTitles.length} CJ products`)
+
+      if (cjTitles.length > 0) {
+        const rawProducts = await fetchAllShopifyProducts()
+        const liveByTitle: Record<string, any> = {}
+        rawProducts.forEach((p: any) => liveByTitle[p.title] = p)
+
+        for (const cjTitle of cjTitles) {
+          // Find best matching Shopify product
+          let bestMatch: any = null
+          let bestScore = 0
+          for (const live of rawProducts) {
+            if (live.status !== 'active') continue
+            const score = titleSimilarity(cjTitle, live.title)
+            if (score > bestScore) { bestScore = score; bestMatch = live }
+          }
+
+          if (!bestMatch || bestScore < 0.3) {
+            console.log(`[fix-pricing] No match for CJ: "${cjTitle}"`)
+            continue
+          }
+
+          const existingTitles = new Set((bestMatch.variants || []).map((v: any) => v.title))
+          for (const variantTitle of cjProducts[cjTitle]) {
+            if (existingTitles.has(variantTitle)) continue
+            try {
+              const res = await fetch(`${SHOPIFY_API}/products/${bestMatch.id}/variants.json`, {
+                method: 'POST',
+                headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variant: { product_id: bestMatch.id, title: variantTitle, price: '6.00' } }),
+              })
+              if (res.ok) { restoredCount++; console.log(`[fix-pricing] ✅ Created "${variantTitle}" for "${bestMatch.title}"`) }
+              else { console.log(`[fix-pricing] ❌ "${variantTitle}" for "${bestMatch.title}": ${res.status}`) }
+            } catch (err: any) { console.error(`[fix-pricing] Error "${variantTitle}": ${err.message}`) }
+            await new Promise(r => setTimeout(r, 350))
+          }
+        }
+        console.log(`[fix-pricing] CJ restore: ${restoredCount} variants created`)
+      }
+
+      // Step 1b: Also restore from products.json backup
       const originalProductsData = loadOriginalProducts()
       if (originalProductsData) {
         const rawProducts = await fetchAllShopifyProducts()
