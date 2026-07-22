@@ -3022,77 +3022,59 @@ app.post('/admin/fix-pricing', requireAdminMiddleware, async (c) => {
 
   for (const p of active) {
     const variants: Array<any> = p.variants ?? []
-    if (variants.length < 2) continue
-
-    // Find base price — the cheapest single-unit variant
-    const singles = variants.filter(v => !parsePieceCount(v.title))
-    const basePrice = singles.length > 0
-      ? Math.min(...singles.map(v => parseFloat(v.price)))
-      : Math.min(...variants.map(v => parseFloat(v.price)))
-
-    const updates: Array<{ id: number; price: string }> = []
     const errors: string[] = []
+    let updated = 0
+
+    // Determine base price (cheapest single-unit variant or overall cheapest)
+    const basePrice = Math.min(...variants.map(v => parseFloat(v.price)))
 
     for (const v of variants) {
-      const count = parsePieceCount(v.title)
       const oldPrice = parseFloat(v.price)
+      const count = parsePieceCount(v.title)
       let newPrice: number
 
-      if (count === null) {
-        // Color / style variant only — match base price
-        newPrice = basePrice
+      if (count === null || count === 1) {
+        // Color / style / single variant — just apply minimum price floor
+        newPrice = Math.max(oldPrice, 6.00)
       } else if (count === -1) {
-        // "Set" or "Bundle" — 10% off sum of all unique singles
-        const uniqueSingles = new Set(variants.filter(x => !parsePieceCount(x.title)).map(v => parseFloat(v.price)))
-        const sumSingles = [...uniqueSingles].reduce((a, b) => a + b, 0)
-        newPrice = Math.round(sumSingles * 0.9 * 100) / 100
-      } else if (count === 1) {
-        newPrice = basePrice
+        // "Set" or "Bundle" — 10% off sum
+        const uniqueSingles = [...new Set(variants.filter(x => !parsePieceCount(x.title)).map(v => parseFloat(v.price)))]
+        const sumSingles = uniqueSingles.reduce((a, b) => a + b, 0)
+        newPrice = Math.max(Math.round(sumSingles * 0.9 * 100) / 100, 6.00)
       } else {
         // Economies of scale: price = base × count^0.85
-        newPrice = Math.round(basePrice * Math.pow(count, 0.85) * 100) / 100
+        newPrice = basePrice * Math.pow(count, 0.85)
       }
 
-      // Round to .99 — common retail practice
+      // Round to .99
       newPrice = Math.floor(newPrice) + 0.99
-      // Apply minimum price floor of $6
       newPrice = Math.max(newPrice, 6.00)
 
-      if (Math.abs(newPrice - oldPrice) > 0.01) {
-        updates.push({ id: v.id, price: String(newPrice) })
-      }
-    }
+      if (Math.abs(newPrice - oldPrice) < 0.01) continue
 
-    // Apply updates in batches
-    for (let i = 0; i < updates.length; i += 10) {
-      const batch = updates.slice(i, i + 10)
+      // PATCH each variant individually (reliable)
       try {
-        await fetch(`${SHOPIFY_API}/products/${p.id}.json`, {
-          method: 'PUT',
+        await fetch(`${SHOPIFY_API}/variants/${v.id}.json`, {
+          method: 'PATCH',
           headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            product: {
-              id: p.id,
-              variants: batch.map(u => ({ id: u.id, price: u.price })),
-            },
-          }),
+          body: JSON.stringify({ variant: { id: v.id, price: String(newPrice) } }),
         })
+        updated++
       } catch (err: any) {
-        errors.push(`batch ${i / 10 + 1}: ${err.message}`)
+        errors.push(`variant ${v.id}: ${err.message}`)
       }
-      await new Promise(r => setTimeout(r, 500))
+      await new Promise(r => setTimeout(r, 300))
     }
 
-    if (updates.length > 0) {
-      results.push({ title: p.title, updated: updates.length, errors })
+    if (updated > 0) {
+      results.push({ title: p.title, updated, errors })
     }
   }
 
-  // Refresh cache after all updates
+  // Refresh local cache
   try {
     const rawProducts = await fetchAllShopifyProducts()
-    const shaped = rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct)
-    writeCache(shaped)
+    writeCache(rawProducts.filter((p: any) => p.status === 'active').map(shapeProduct))
   } catch {}
 
   return c.json({
