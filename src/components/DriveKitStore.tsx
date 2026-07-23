@@ -224,12 +224,15 @@ function fuzzyMatch(query: string, text: string): boolean {
 function ProductMeta({ product }: { product: Product }) {
   const variantCount = product.variants.length
   const inStockCount = product.variants.filter(v => v.inStock).length
+  const totalQty = product.variants.reduce((sum, v) => sum + (v.inventoryQuantity ?? 0), 0)
   return (
     <div className="flex items-center gap-2 text-xs text-zinc-500">
       <span>{variantCount} variant{variantCount !== 1 ? 's' : ''}</span>
       <span>·</span>
       <span className={inStockCount > 0 ? 'text-emerald-400' : 'text-red-400'}>
-        {inStockCount > 0 ? `${inStockCount} in stock` : 'Out of stock'}
+        {inStockCount > 0
+          ? totalQty > 10 ? 'In Stock' : `${totalQty} in stock`
+          : 'Out of stock'}
       </span>
     </div>
   )
