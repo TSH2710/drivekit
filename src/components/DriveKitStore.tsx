@@ -5,7 +5,7 @@ import {
   Facebook, Youtube, ArrowRight, Check, Tag, Gauge,
   Heart, Eye, ChevronLeft, Plus, Minus, Share2, Loader2, AlertCircle,
   Bell, CheckCircle, UserRound, ArrowLeft, Package, XCircle,
-  GitCompareArrows, Columns, SkipForward
+  GitCompareArrows, Columns, SkipForward, Car
 } from 'lucide-react'
 import AdminDashboard from './AdminDashboard'
 import MyOrders from './MyOrders'
@@ -226,11 +226,12 @@ function ProductMeta({ product }: { product: Product }) {
   )
 }
 
-function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompared, onToggleCompare, onQuickAdd }: { product: Product; onClick: () => void; isWishlisted: boolean; onToggleWishlist: (id: number) => void; isCompared: boolean; onToggleCompare: (id: number) => void; onQuickAdd?: (product: Product) => void }) {
+function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompared, onToggleCompare, onQuickAdd, myGarage }: { product: Product; onClick: () => void; isWishlisted: boolean; onToggleWishlist: (id: number) => void; isCompared: boolean; onToggleCompare: (id: number) => void; onQuickAdd?: (product: Product) => void; myGarage?: Array<{ year: string; make: string; model: string }> }) {
   const compareAt = getCompareAtPrice(product.variants)
   const discount = getDiscountPercent(product.minPrice, compareAt)
   const firstImage = product.images[0]
   const badge = getBadgeTag(product.tags)
+  const hasVehicle = myGarage && myGarage.length > 0
 
   return (
     <div
@@ -255,6 +256,11 @@ function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompa
         {badge && (
           <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wide z-20">
             {badge}
+          </span>
+        )}
+        {hasVehicle && (
+          <span className="absolute top-3 right-3 bg-emerald-500/90 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 z-20">
+            <Check size={10} /> Fits your {myGarage[0].make}
           </span>
         )}
         {discount && discount > 0 && (
@@ -1434,6 +1440,13 @@ export default function DriveKitStore() {
   const [contactError, setContactError] = useState('')
   const [showBackToTop, setShowBackToTop] = useState(false)
   const [miniCartOpen, setMiniCartOpen] = useState(false)
+  const [myGarageOpen, setMyGarageOpen] = useState(false)
+  const [myGarage, setMyGarage] = useState<Array<{ year: string; make: string; model: string }>>(() => {
+    try {
+      const saved = localStorage.getItem('drivekit_garage')
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  })
 
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -1726,6 +1739,18 @@ export default function DriveKitStore() {
   useEffect(() => {
     try { localStorage.setItem('drivekit_cart', JSON.stringify(cartItems)) } catch {}
   }, [cartItems])
+
+  // Save garage to localStorage and backend
+  useEffect(() => {
+    try { localStorage.setItem('drivekit_garage', JSON.stringify(myGarage)) } catch {}
+    if (myGarage.length > 0 && authToken) {
+      fetch('/api/garage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ vehicles: myGarage }),
+      }).catch(() => {})
+    }
+  }, [myGarage, authToken])
 
   useEffect(() => {
     fetch('/api/site-content').then(r => r.json()).then(d => {
@@ -2987,6 +3012,17 @@ export default function DriveKitStore() {
             {/* Right controls */}
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setMyGarageOpen(true)}
+                className={`hidden lg:flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-sm font-semibold ${
+                  myGarage.length > 0
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
+                }`}
+              >
+                <Car size={16} />
+                {myGarage.length > 0 ? myGarage[0].year + ' ' + myGarage[0].make : 'My Garage'}
+              </button>
+              <button
                 onClick={() => setSearchOpen(!searchOpen)}
                 aria-label={searchOpen ? 'Close search' : 'Open search'}
                 aria-expanded={searchOpen}
@@ -3877,7 +3913,7 @@ export default function DriveKitStore() {
           <>
           <div key={`grid-${searchQuery}-${activeCategory}-${currentPage}`} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {paginatedProducts.map((p) => (
-              <ProductCard key={p.handle || `product-${p.id}`} product={p} onClick={() => setSelectedProduct(p)} isWishlisted={wishlistedIds.has(p.id)} onToggleWishlist={toggleWishlist} isCompared={comparedIds.has(p.id)} onToggleCompare={toggleCompare} onQuickAdd={(prod) => { addToCart(prod, 1); setMiniCartOpen(true) }} />
+              <ProductCard key={p.handle || `product-${p.id}`} product={p} onClick={() => setSelectedProduct(p)} isWishlisted={wishlistedIds.has(p.id)} onToggleWishlist={toggleWishlist} isCompared={comparedIds.has(p.id)} onToggleCompare={toggleCompare} onQuickAdd={(prod) => { addToCart(prod, 1); setMiniCartOpen(true) }} myGarage={myGarage} />
             ))}
           </div>
 
@@ -4244,6 +4280,95 @@ export default function DriveKitStore() {
                 Sign in
               </button>
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── My Garage Modal ── */}
+      {myGarageOpen && (
+        <div className="fixed inset-0 z-[200] bg-zinc-950/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setMyGarageOpen(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <Car size={24} className="text-red-400" />
+                <div>
+                  <h2 className="text-xl font-black text-white">My Garage</h2>
+                  <p className="text-zinc-500 text-sm">Save your vehicle for personalized picks</p>
+                </div>
+              </div>
+              <button onClick={() => setMyGarageOpen(false)} className="p-2 text-zinc-400 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {myGarage.length > 0 && (
+              <div className="space-y-3 mb-6">
+                {myGarage.map((v, i) => (
+                  <div key={i} className="flex items-center justify-between bg-zinc-800 border border-zinc-700 rounded-xl p-4">
+                    <div>
+                      <p className="text-white font-bold">{v.year} {v.make} {v.model}</p>
+                      <p className="text-zinc-500 text-xs">{i === 0 ? 'Primary vehicle' : 'Additional vehicle'}</p>
+                    </div>
+                    <button
+                      onClick={() => setMyGarage(prev => prev.filter((_, idx) => idx !== i))}
+                      className="text-zinc-600 hover:text-red-400 transition-colors p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {myGarage.length < 3 && (
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4">
+                <p className="text-zinc-300 text-sm font-semibold mb-3">Add a vehicle</p>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <select
+                    className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500"
+                    id="garage-year"
+                  >
+                    <option value="">Year</option>
+                    {VEHICLE_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <select
+                    className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500"
+                    id="garage-make"
+                  >
+                    <option value="">Make</option>
+                    {VEHICLE_MAKES_ALL.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <select
+                    className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500"
+                    id="garage-model"
+                  >
+                    <option value="">Model</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => {
+                    const year = (document.getElementById('garage-year') as HTMLSelectElement)?.value
+                    const make = (document.getElementById('garage-make') as HTMLSelectElement)?.value
+                    const model = (document.getElementById('garage-model') as HTMLSelectElement)?.value
+                    if (!year || !make || !model) return
+                    setMyGarage(prev => [...prev, { year, make, model }])
+                    // Reset selects
+                    ;(document.getElementById('garage-year') as HTMLSelectElement).value = ''
+                    ;(document.getElementById('garage-make') as HTMLSelectElement).value = ''
+                    ;(document.getElementById('garage-model') as HTMLSelectElement).value = ''
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-lg text-sm transition-colors"
+                >
+                  Add to Garage
+                </button>
+              </div>
+            )}
+
+            {myGarage.length > 0 && (
+              <p className="text-zinc-500 text-xs mt-4 text-center">
+                We'll show "Fits your vehicle" badges on compatible products
+              </p>
+            )}
           </div>
         </div>
       )}

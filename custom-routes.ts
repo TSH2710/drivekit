@@ -3264,6 +3264,40 @@ app.get('/admin/fix-pricing/status', requireAdminMiddleware, async (c) => {
   return c.json({ ok: true, ...pricingJob })
 })
 
+// ── My Garage (Vehicle Profile) ──────────────────────────────
+
+app.get('/garage', optionalAuth, async (c) => {
+  const sessionUser = c.get('user') ?? null
+  if (!sessionUser) return c.json({ vehicles: [] })
+
+  try {
+    const record = await prisma.siteContent.findUnique({ where: { key: `garage:${sessionUser.userId}` } })
+    if (record) {
+      return c.json({ vehicles: JSON.parse(record.value) })
+    }
+  } catch {}
+  return c.json({ vehicles: [] })
+})
+
+app.post('/garage', optionalAuth, async (c) => {
+  const sessionUser = c.get('user') ?? null
+  if (!sessionUser) return c.json({ error: 'Sign in to save your vehicle' }, 401)
+
+  const body = await c.req.json<{ vehicles?: Array<{ year: string; make: string; model: string }> }>()
+  if (!body.vehicles?.length) return c.json({ error: 'No vehicles provided' }, 400)
+
+  try {
+    await prisma.siteContent.upsert({
+      where: { key: `garage:${sessionUser.userId}` },
+      update: { value: JSON.stringify(body.vehicles) },
+      create: { key: `garage:${sessionUser.userId}`, value: JSON.stringify(body.vehicles) },
+    })
+    return c.json({ ok: true, vehicles: body.vehicles })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Failed to save garage' }, 500)
+  }
+})
+
 // ── CJ Product Mapping ──────────────────────────────────────
 
 const CJ_MAPPINGS_FILE = join(process.cwd(), 'data', 'cj-mappings.json')
