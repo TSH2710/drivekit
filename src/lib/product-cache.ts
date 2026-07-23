@@ -154,7 +154,7 @@ export function shapeProduct(p: any) {
       option1: v.option1,
       option2: v.option2,
       option3: v.option3,
-      inStock: true,
+      inStock: (v.inventory_quantity ?? 0) > 0 || v.inventory_management === null,
       inventoryQuantity: v.inventory_quantity ?? 0,
       sku: v.sku,
       grams: v.grams,
@@ -170,7 +170,7 @@ export function shapeProduct(p: any) {
       const prices = (p.variants ?? []).map((v: any) => parseFloat(v.price)).filter((n: number) => !isNaN(n))
       return prices.length > 0 ? Math.min(...prices) : 0
     })(),
-    inStock: true,
+    inStock: (p.variants ?? []).some((v: any) => (v.inventory_quantity ?? 0) > 0 || v.inventory_management === null),
   }
 }
 
