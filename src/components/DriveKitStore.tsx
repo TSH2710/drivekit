@@ -771,32 +771,45 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
             <p className="text-xs text-zinc-600 mb-5">SKU: <span className="text-zinc-400">{displaySku}</span></p>
 
             {/* Variant selectors */}
-            {product.options.length > 0 && (
-              <div className="space-y-4 mb-6">
-                {product.options.map((opt) => (
-                  <div key={opt.name}>
-                    <p className="text-sm text-zinc-400 font-semibold mb-2">
-                      {opt.name}: <span className="text-white">{selectedOptions[opt.name] ?? 'Select'}</span>
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {opt.values.map((val) => (
-                        <button
-                          key={val}
-                          onClick={() => setSelectedOptions((prev) => ({ ...prev, [opt.name]: val }))}
-                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                            selectedOptions[opt.name] === val
-                              ? 'border-red-500 bg-red-600/20 text-white'
-                              : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
-                          }`}
-                        >
-                          {val}
-                        </button>
-                      ))}
+            {product.options.length > 0 && (() => {
+              // Filter out "Default Title" when there are real variants
+              const visibleOptions = product.options.map(opt => ({
+                ...opt,
+                values: opt.values.filter(v => {
+                  if (v === 'Default Title' || v === 'Default') return opt.values.length > 1
+                  return true
+                }),
+              })).filter(opt => opt.values.length > 0)
+
+              if (visibleOptions.length === 0) return null
+
+              return (
+                <div className="space-y-4 mb-6">
+                  {visibleOptions.map((opt) => (
+                    <div key={opt.name}>
+                      <p className="text-sm text-zinc-400 font-semibold mb-2">
+                        {opt.name}: <span className="text-white">{selectedOptions[opt.name] ?? 'Select'}</span>
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {opt.values.map((val) => (
+                          <button
+                            key={val}
+                            onClick={() => setSelectedOptions((prev) => ({ ...prev, [opt.name]: val }))}
+                            className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                              selectedOptions[opt.name] === val
+                                ? 'border-red-500 bg-red-600/20 text-white'
+                                : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
+                            }`}
+                          >
+                            {val}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )
+            })()}
 
             {/* Stock indicator */}
             <div className={`flex items-center gap-2 mb-6 text-sm font-semibold ${displayInStock ? 'text-emerald-400' : 'text-red-400'}`}>
