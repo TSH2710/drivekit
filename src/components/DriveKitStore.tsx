@@ -178,6 +178,15 @@ function formatPrice(price: number) {
   return price.toFixed(2)
 }
 
+function getPriceRange(variants: ShopifyVariant[]): string {
+  if (variants.length <= 1) return formatPrice(variants[0]?.price ?? 0)
+  const prices = variants.map(v => v.price).sort((a, b) => a - b)
+  const min = prices[0]
+  const max = prices[prices.length - 1]
+  if (min === max) return formatPrice(min)
+  return `${formatPrice(min)}-${formatPrice(max)}`
+}
+
 function getCompareAtPrice(variants: ShopifyVariant[]): number | null {
   for (const v of variants) {
     if (v.compareAtPrice !== null) return v.compareAtPrice
@@ -294,7 +303,7 @@ function ProductCard({ product, onClick, isWishlisted, onToggleWishlist, isCompa
         <ProductMeta product={product} />
 
         <div className="flex items-center gap-2 mt-3">
-          <span className="text-white font-bold text-lg">${formatPrice(product.minPrice)}</span>
+          <span className="text-white font-bold text-lg">${getPriceRange(product.variants)}</span>
           {compareAt && compareAt > product.minPrice && (
             <span className="text-zinc-500 text-sm line-through">${formatPrice(compareAt)}</span>
           )}
