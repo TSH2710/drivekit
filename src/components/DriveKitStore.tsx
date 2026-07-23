@@ -508,29 +508,40 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
     })
   }, [product, selectedOptions])
 
+  // Update image when selected options change
   useEffect(() => {
-    if (!matchedVariant || product.images.length === 0) return
+    if (product.images.length === 0) return
 
-    // 1) Exact imageId match (variant has a dedicated image in Shopify)
-    if (matchedVariant.imageId) {
-      const imgIdx = product.images.findIndex((img) => img.id === matchedVariant.imageId)
+    // Find the matched variant for current options
+    const variant = product.variants.find((v) => {
+      return product.options.every((opt, i) => {
+        const selected = selectedOptions[opt.name]
+        const vOption = i === 0 ? v.option1 : i === 1 ? v.option2 : v.option3
+        return !selected || vOption === selected
+      })
+    })
+
+    if (!variant) return
+
+    // 1) Exact imageId match
+    if (variant.imageId) {
+      const imgIdx = product.images.findIndex((img) => img.id === variant.imageId)
       if (imgIdx >= 0) { setActiveImgIdx(imgIdx); return }
     }
 
-    // 2) Distribute variants across product images deterministically
-    //    Each variant gets a unique image from the product gallery
+    // 2) Distribute variants across product images
     const imagePool = product.images.slice(1).length > 0
-      ? product.images.slice(1) // skip lifestyle composite
+      ? product.images.slice(1)
       : product.images
 
-    const variantIdx = product.variants.findIndex((v) => v.id === matchedVariant.id)
+    const variantIdx = product.variants.findIndex((v) => v.id === variant.id)
     const stableIdx = variantIdx >= 0
       ? variantIdx % imagePool.length
-      : Math.abs(matchedVariant.title.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), 0)) % imagePool.length
+      : Math.abs(variant.title.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), 0)) % imagePool.length
 
     const actualIdx = product.images.indexOf(imagePool[stableIdx])
     if (actualIdx >= 0) setActiveImgIdx(actualIdx)
-  }, [matchedVariant?.id, product.images, product.variants])
+  }, [selectedOptions, product.images, product.variants])
 
   const displayPrice = matchedVariant?.price ?? product.minPrice
   const displayCompareAt = matchedVariant?.compareAtPrice ?? getCompareAtPrice(product.variants)
