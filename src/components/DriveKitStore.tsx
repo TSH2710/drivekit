@@ -508,25 +508,14 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
     })
   }, [product, selectedOptions])
 
-  // Update image when selected options change
-  useEffect(() => {
-    if (product.images.length === 0) return
-
-    // Find the matched variant for current options
-    const variant = product.variants.find((v) => {
-      return product.options.every((opt, i) => {
-        const selected = selectedOptions[opt.name]
-        const vOption = i === 0 ? v.option1 : i === 1 ? v.option2 : v.option3
-        return !selected || vOption === selected
-      })
-    })
-
-    if (!variant) return
+  // Compute the correct image index based on selected variant
+  const targetImageIdx = useMemo(() => {
+    if (!matchedVariant || product.images.length === 0) return 0
 
     // 1) Exact imageId match
-    if (variant.imageId) {
-      const imgIdx = product.images.findIndex((img) => img.id === variant.imageId)
-      if (imgIdx >= 0) { setActiveImgIdx(imgIdx); return }
+    if (matchedVariant.imageId) {
+      const imgIdx = product.images.findIndex((img) => img.id === matchedVariant.imageId)
+      if (imgIdx >= 0) return imgIdx
     }
 
     // 2) Distribute variants across product images
@@ -534,14 +523,16 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
       ? product.images.slice(1)
       : product.images
 
-    const variantIdx = product.variants.findIndex((v) => v.id === variant.id)
-    const stableIdx = variantIdx >= 0
-      ? variantIdx % imagePool.length
-      : Math.abs(variant.title.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), 0)) % imagePool.length
+    const variantIdx = product.variants.findIndex((v) => v.id === matchedVariant.id)
+    return variantIdx >= 0
+      ? product.images.indexOf(imagePool[variantIdx % imagePool.length])
+      : 0
+  }, [matchedVariant?.id, product.images, product.variants])
 
-    const actualIdx = product.images.indexOf(imagePool[stableIdx])
-    if (actualIdx >= 0) setActiveImgIdx(actualIdx)
-  }, [selectedOptions, product.images, product.variants])
+  // Sync activeImgIdx to targetImageIdx
+  useEffect(() => {
+    setActiveImgIdx(targetImageIdx)
+  }, [targetImageIdx])
 
   const displayPrice = matchedVariant?.price ?? product.minPrice
   const displayCompareAt = matchedVariant?.compareAtPrice ?? getCompareAtPrice(product.variants)
