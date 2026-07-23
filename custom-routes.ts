@@ -3443,7 +3443,6 @@ app.post('/shopify/fix-variants', requireAdminMiddleware, async (c) => {
   return c.json({ ok: true, results, totalCreated: results.reduce((a, r) => a + r.created, 0), totalMapped: results.reduce((a, r) => a + r.imageMapped, 0) })
 })
 
->>>>>>> f3e7a33 (feat: add batch fix-variants endpoint for CJ variant/image matching)
 // ── Promo Code Validation (server-side) ──────────────────────
 
 const PROMO_CODES: Record<string, { discount: number; label: string }> = {
