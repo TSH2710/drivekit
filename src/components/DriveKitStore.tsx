@@ -505,20 +505,28 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
       if (imgIdx >= 0) { setActiveImgIdx(imgIdx); return }
     }
 
-    // 2) Distribute variants across available images deterministically
-    //    First, skip the "lifestyle" image (usually index 0) since it's a composite
-    const imagePool = product.images.slice(1).length > 0
-      ? product.images.slice(1)
-      : product.images
+    // 2) Try to match variant option values against image alt text or src filename
+    const variantWords = [
+      matchedVariant.option1,
+      matchedVariant.option2,
+      matchedVariant.option3,
+      matchedVariant.title,
+    ].filter(Boolean).join(' ').toLowerCase().split(/[\s/\\-]+/).filter(w => w.length > 2)
 
-    // Hash the variant title to a stable index within the image pool
-    const variantIdx = product.variants.findIndex((v) => v.id === matchedVariant.id)
-    const stableIdx = variantIdx >= 0
-      ? variantIdx % imagePool.length          // each variant gets a different image
-      : Math.abs(matchedVariant.title.split('').reduce((h, c) => h * 31 + c.charCodeAt(0), 0)) % imagePool.length
+    if (variantWords.length > 0) {
+      // Skip lifestyle image (index 0) for matching — it's usually a composite
+      const searchStart = product.images.length > 1 ? 1 : 0
+      for (let i = searchStart; i < product.images.length; i++) {
+        const img = product.images[i]
+        const haystack = `${img.alt || ''} ${img.src || ''}`.toLowerCase()
+        if (variantWords.some(w => haystack.includes(w))) {
+          setActiveImgIdx(i)
+          return
+        }
+      }
+    }
 
-    const actualIdx = product.images.indexOf(imagePool[stableIdx])
-    if (actualIdx >= 0) setActiveImgIdx(actualIdx)
+    // 3) No match found — keep the current image index (don't change)
   }, [matchedVariant?.id, product.images, product.variants])
 
   const displayPrice = matchedVariant?.price ?? product.minPrice
