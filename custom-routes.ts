@@ -3264,6 +3264,186 @@ app.get('/admin/fix-pricing/status', requireAdminMiddleware, async (c) => {
   return c.json({ ok: true, ...pricingJob })
 })
 
+// ── My Garage (Vehicle Profile) ──────────────────────────────
+
+app.get('/garage', optionalAuth, async (c) => {
+  const sessionUser = c.get('user') ?? null
+  if (!sessionUser) return c.json({ vehicles: [] })
+
+  try {
+    const record = await prisma.siteContent.findUnique({ where: { key: `garage:${sessionUser.userId}` } })
+    if (record) {
+      return c.json({ vehicles: JSON.parse(record.value) })
+    }
+  } catch {}
+  return c.json({ vehicles: [] })
+})
+
+app.post('/garage', optionalAuth, async (c) => {
+  const sessionUser = c.get('user') ?? null
+  if (!sessionUser) return c.json({ error: 'Sign in to save your vehicle' }, 401)
+
+  const body = await c.req.json<{ vehicles?: Array<{ year: string; make: string; model: string }> }>()
+  if (!body.vehicles?.length) return c.json({ error: 'No vehicles provided' }, 400)
+
+  try {
+    await prisma.siteContent.upsert({
+      where: { key: `garage:${sessionUser.userId}` },
+      update: { value: JSON.stringify(body.vehicles) },
+      create: { key: `garage:${sessionUser.userId}`, value: JSON.stringify(body.vehicles) },
+    })
+    return c.json({ ok: true, vehicles: body.vehicles })
+  } catch (err: any) {
+    return c.json({ error: err.message ?? 'Failed to save garage' }, 500)
+  }
+})
+
+
+// ── Batch Fix Variants & Image Mapping ───────────────────────
+// POST /shopify/fix-variants — creates missing variants from CJ data and maps images
+
+app.post('/shopify/fix-variants', requireAdminMiddleware, async (c) => {
+  const token = await ensureValidToken()
+  if (!token) return c.json({ error: 'No valid Shopify token' }, 401)
+
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+  const shopifyGet = async (path: string) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, { headers: { 'X-Shopify-Access-Token': token } })
+    if (!res.ok) throw new Error(`GET ${res.status}: ${(await res.text()).slice(0, 200)}`)
+    return res.json()
+  }
+  const shopifyPut = async (path: string, data: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'PUT', headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) { const t = await res.text(); console.error(`PUT ${path} ${res.status}: ${t.slice(0, 200)}`); return null }
+    return res.json()
+  }
+  const shopifyPatch = async (path: string, data: any) => {
+    const res = await fetch(`${SHOPIFY_API}${path}`, {
+      method: 'PATCH', headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) return null
+    return res.json()
+  }
+
+  // CJ product title → Shopify title mapping + required variant specs
+  const FIX_LIST: Array<{ cjTitle: string; shopifyTitle: string; specs: string[] }> = [
+    { cjTitle: 'Car accessories armrest box pad', shopifyTitle: 'Car Armrest Box Cushion Pad', specs: ['Black', 'Coffee', 'Beige', 'Wine red', 'Black red'] },
+    { cjTitle: 'Car Light Turn Signal Led Strip Car LED Daytime Running', shopifyTitle: 'LED Turn Signal Light Strip', specs: ['Blue to Yellow/30cm', 'White 2pcs/30cm', 'Red to Yellow 2pcs/60cm', 'White to Yellow 2pcs/60cm', 'Light Blue to Yellow/45cm', 'Red to Yellow/30cm', 'White/45cm', 'Purple Yellow 2pcs/30cm', 'White to Yellow 2pcs/45cm', 'Red to Yellow 2pcs/30cm', 'Light Blue 2pcs/60cm', 'Blue to Yellow 2pcs/30cm', 'Blue to Yellow 2pcs/60cm', 'Red to Yellow/60cm', 'Purple Yellow 2pcs/45cm', 'Blue to Yellow/60cm', 'Light Blue 2pcs/30cm', 'Purple to Yellow/45cm', 'White to Yellow/30cm', 'White to Yellow/45cm', 'Blue to Yellow/45cm', 'Purple Yellow 2pcs/60cm', 'White to Yellow 2pcs/30cm', 'Red to Yellow 2pcs/45cm', 'Light Blue to Yellow/60cm', 'Purple to Yellow/30cm', 'Red to Yellow/45cm', 'Purple to Yellow/60cm', 'White/60cm', 'White/30cm', 'White 2pcs/45cm', 'White 2pcs/60cm', 'Light Blue to Yellow/30cm', 'Blue to Yellow/30cm', 'Light Blue/30cm', 'Light Blue/45cm', 'Light Blue/60cm'] },
+    { cjTitle: 'Foam Spray Gun High Pressure Automotive Foam Spray Gun Household Cleaner Generator', shopifyTitle: 'High Pressure Foam Spray Gun', specs: ['Accessory 4piece set', 'Black4PCS', 'Green4PCS', 'Black2PCS', 'Green2PCS', 'Combination', 'Plastic cup', '2PC Yellow', '3PC Yellow', '4PC Yellow', '3PC Black', '3PC Green', 'Set', 'Set1', 'Set2', '1Style', '2Style', '3Style', '4Style', '5Style', '6Style', '7Style', '8Style', '9Style', '10Style', '11Style', '12Style', 'Green set', 'Yellow set', 'Yellow set A', 'Green set A', 'Blackset', 'Black', 'Green', 'Yellow'] },
+    { cjTitle: 'Two-color Couble-sided Car Dual-use Cleaning Car Wash Towel', shopifyTitle: 'Microfiber Car Detailing Towels', specs: ['2pc 30x30', '3pcs 30x30', '5pcs 30x30', '10pcs 30x30', '3pc Yellow grey', '2pc 40x45', '38x45', 'Blue 30x40', '2pc Green 30x40', '2pc 38x45', '3PCx2', 'Green 30x40', '3pc 30x40cm', '40x45', '30x60', '2pc 30x60', '30x30', '2pc 30x40', '30x40', '2pc Blue 30x40'] },
+    { cjTitle: 'Wireless Car Vacuum Cleaner Portable Handheld High-power Vacuum Cleaner For Car Home Office Keyboard Cleaning', shopifyTitle: 'Cordless Car Vacuum Cleaner', specs: ['White/Charge', 'White/Vehicle', '7903black/Wireless', '7903white/Wireless', 'A black/Wireless', 'A white/Wireless', 'A black SET/Wireless', 'Black/Charge', 'Black/Vehicle'] },
+    { cjTitle: 'Car Humidifier Air Purifier Freshener Essential Oil Diffuser', shopifyTitle: 'Car Aromatherapy Diffuser & Purifier', specs: ['Purple', '100pieces', 'Blue1', 'Pink1', 'Green', 'Blue', 'Purple1', 'Green1', 'Pink'] },
+    { cjTitle: 'PU Leather Car Storage Bag Multifunction Seat Back Tray Hanging Bag Waterproof Car Organizer Automotive Interior Accessories', shopifyTitle: 'Premium Seatback Car Organizer', specs: ['Black', 'Coffee', 'Beige', 'Wine red', 'Brown', 'Grey', 'Beige set1', 'Beige set2', 'Beige 2pcs', 'Black 2pcs', 'Brown 2pcs', 'Coffee 2pcs', 'Grey 2pcs', 'Wine red 2pcs', 'Set1', 'Set2', 'Set3', 'Set4', 'Set5', 'Set6', 'Black set1', 'Wine red set1', 'Brown set1', 'Coffee set1', 'Grey set1'] },
+    { cjTitle: 'Solar Auto Rotation Car Air Freshener Perfume Seat', shopifyTitle: 'Solar Rotating Car Air Freshener', specs: ['Black', 'Blue', 'Gold', 'Black plastic', 'Blue plastic', 'Red plastic', 'Silver plastic', 'A aromatherapy tablets', 'B aromatherapy tablets', 'C aromatherapy tablets', 'D aromatherapy tablets', 'E aromatherapy tablets', 'Red', 'Silver'] },
+    { cjTitle: 'Automobile headlight repair liquid', shopifyTitle: 'Headlight Restoration Repair Liquid', specs: ['20ml 2pcs', '20ml 3pcs', '20ml 4pcs', '20ml 30PC', '20ml 50PC', '20ml 70PC', '50ml', '50ml  3pcs', '50ml  4pcs', '50ml  2pcs', 'Set', '20ml 5pcs', '20ml'] },
+    { cjTitle: 'Inflatable Mattress Camping Car Air Mattress Car Travel Mattress Outdoor Car Pillow Bed', shopifyTitle: 'Inflatable Car Travel Air Mattress', specs: ['Black', 'Blue Siamese', 'Grey Siamese', 'Grey Split', 'Blue', 'Khaki Split', 'Grey', 'Khaki Siamese', 'Khaki', 'Blue Split', 'Black Siamese', 'Black Split'] },
+    { cjTitle: 'Crystal Diamond Car Air Freshener Perfume Accessories Car Decoration Solid Perfume', shopifyTitle: 'Crystal Diamond Car Air Freshener', specs: ['Red', 'Black', 'White'] },
+  ]
+
+  const results: Array<{ title: string; created: number; imageMapped: number; errors: string[] }> = []
+
+  // Fetch all products
+  const rawProducts = await fetchAllShopifyProducts()
+  const byTitle: Record<string, any> = {}
+  rawProducts.forEach((p: any) => { byTitle[p.title] = p })
+
+  for (const fix of FIX_LIST) {
+    const product = byTitle[fix.shopifyTitle]
+    if (!product) { results.push({ title: fix.shopifyTitle, created: 0, imageMapped: 0, errors: ['Product not found'] }); continue }
+
+    const existingVariants = (product.variants ?? [])
+      .map((v: any) => v.option1 || v.title)
+      .filter((t: string) => t && t !== 'Default Title' && t !== 'Default' && t !== 'Option 1')
+
+    const existingSet = new Set(existingVariants)
+    const missingSpecs = fix.specs.filter(s => !existingSet.has(s))
+
+    if (missingSpecs.length === 0) {
+      results.push({ title: fix.shopifyTitle, created: 0, imageMapped: 0, errors: [] })
+      continue
+    }
+
+    console.log(`[fix-variants] ${fix.shopifyTitle}: adding ${missingSpecs.length} variants`)
+
+    // Fetch full product with fresh data
+    let freshProduct: any
+    try {
+      const resp = await shopifyGet(`/products/${product.id}.json`)
+      freshProduct = resp.product
+    } catch (err: any) {
+      results.push({ title: fix.shopifyTitle, created: 0, imageMapped: 0, errors: [`Fetch: ${err.message}`] })
+      continue
+    }
+
+    const existingObjs = (freshProduct.variants ?? [])
+      .filter((v: any) => v.option1 && v.option1 !== 'Default Title' && v.option1 !== 'Default' && v.option1 !== 'Option 1')
+      .map((v: any) => ({ id: v.id, option1: v.option1, price: v.price }))
+
+    const newVariants = missingSpecs.map(s => ({ option1: s, price: '14.99' }))
+    const allVariants = [...existingObjs, ...newVariants]
+    const allSpecs = allVariants.map((v: any) => v.option1)
+
+    // PUT to update product with all variants
+    const putResult = await shopifyPut(`/products/${product.id}.json`, {
+      product: { id: product.id, options: [{ name: 'Variant', values: allSpecs }], variants: allVariants },
+    })
+
+    if (!putResult) {
+      results.push({ title: fix.shopifyTitle, created: 0, imageMapped: 0, errors: ['PUT failed'] })
+      continue
+    }
+
+    await sleep(1000)
+
+    // Now assign images by position
+    const images = (product.images ?? []).filter((img: any) => img.alt !== 'AI Generated Lifestyle Image')
+    const imageIds = images.map((img: any) => img.id)
+
+    let imageMapped = 0
+    if (imageIds.length > 0) {
+      // Re-fetch to get updated variant IDs
+      const resp2 = await shopifyGet(`/products/${product.id}.json`)
+      const freshVariants = resp2.product.variants ?? []
+      const variantMap: Record<string, any> = {}
+      freshVariants.forEach((v: any) => {
+        if (v.option1 && v.option1 !== 'Default Title' && v.option1 !== 'Default' && v.option1 !== 'Option 1') {
+          variantMap[v.option1] = v
+        }
+      })
+
+      for (let i = 0; i < allSpecs.length && i < imageIds.length; i++) {
+        const spec = allSpecs[i]
+        const v = variantMap[spec]
+        if (!v) continue
+        if (v.image_id === imageIds[i]) continue
+
+        await shopifyPatch(`/variants/${v.id}.json`, {
+          variant: { id: v.id, image_id: imageIds[i] },
+        })
+        imageMapped++
+        await sleep(400)
+      }
+    }
+
+    results.push({ title: fix.shopifyTitle, created: missingSpecs.length, imageMapped, errors: [] })
+    await sleep(800)
+  }
+
+  // Refresh cache
+  try {
+    const fresh = await fetchAllShopifyProducts()
+    writeCache(fresh.filter((p: any) => p.status === 'active').map(shapeProduct))
+  } catch {}
+
+  return c.json({ ok: true, results, totalCreated: results.reduce((a, r) => a + r.created, 0), totalMapped: results.reduce((a, r) => a + r.imageMapped, 0) })
+})
+
+>>>>>>> f3e7a33 (feat: add batch fix-variants endpoint for CJ variant/image matching)
 // ── Promo Code Validation (server-side) ──────────────────────
 
 const PROMO_CODES: Record<string, { discount: number; label: string }> = {
