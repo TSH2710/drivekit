@@ -834,61 +834,72 @@ function ProductDetail({ product, onBack, addToCart, onCheckout, waitlistSubmitt
               {displayInStock ? 'In Stock — Ships within 24 hours' : 'Out of Stock — Join Waitlist'}
             </div>
 
-            {/* Vehicle Fitment Checker */}
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4 mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Truck size={16} className="text-red-400" />
-                <span className="text-white text-sm font-bold">Does this fit my car?</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <select
-                  value={fitmentYear}
-                  onChange={(e) => { setFitmentYear(e.target.value); setFitmentMake(''); setFitmentModel(''); setFitmentResult(null) }}
-                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none"
-                >
-                  <option value="">Year</option>
-                  {VEHICLE_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-                <select
-                  value={fitmentMake}
-                  onChange={(e) => { setFitmentMake(e.target.value); setFitmentModel(''); setFitmentResult(null) }}
-                  disabled={!fitmentYear}
-                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none disabled:opacity-40"
-                >
-                  <option value="">Make</option>
-                  {(VEHICLE_MAKES_BY_YEAR[fitmentYear] || VEHICLE_MAKES_ALL).map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <select
-                  value={fitmentModel}
-                  onChange={(e) => { setFitmentModel(e.target.value); setFitmentResult(null) }}
-                  disabled={!fitmentMake}
-                  className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none disabled:opacity-40"
-                >
-                  <option value="">Model</option>
-                  {(VEHICLE_MODELS_BY_MAKE[fitmentMake] || []).map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              {fitmentResult && (
-                <div className={`mt-3 flex items-center gap-2 text-sm font-semibold ${fitmentResult.fits ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  <Check size={14} />
-                  {fitmentResult.fits
-                    ? `Yes — this fits your ${fitmentYear} ${fitmentMake} ${fitmentModel}`
-                    : `Universal fit — designed to work with most ${fitmentMake ? fitmentMake + ' ' : ''}vehicles`
-                  }
+            {/* Vehicle Fitment Checker — only for universal-fit products */}
+            {(() => {
+              // Only show fitment checker for products that are truly universal
+              const t = product.title.toLowerCase()
+              const isUniversal = !t.includes('obd') && !t.includes('fuel saver') && !t.includes('ecoo')
+                && !t.includes('tire chain') && !t.includes('tire inflator')
+                && !t.includes('dash cam') && !t.includes('gps tracker')
+                && !t.includes('mirror') && !t.includes('bumper guard')
+                && !t.includes('heating cushion') && !t.includes('defogger')
+
+              if (!isUniversal) return null
+
+              return (
+                <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Truck size={16} className="text-red-400" />
+                    <span className="text-white text-sm font-bold">Does this fit my car?</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={fitmentYear}
+                      onChange={(e) => { setFitmentYear(e.target.value); setFitmentMake(''); setFitmentModel(''); setFitmentResult(null) }}
+                      className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none"
+                    >
+                      <option value="">Year</option>
+                      {VEHICLE_YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                    <select
+                      value={fitmentMake}
+                      onChange={(e) => { setFitmentMake(e.target.value); setFitmentModel(''); setFitmentResult(null) }}
+                      disabled={!fitmentYear}
+                      className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none disabled:opacity-40"
+                    >
+                      <option value="">Make</option>
+                      {(VEHICLE_MAKES_BY_YEAR[fitmentYear] || VEHICLE_MAKES_ALL).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <select
+                      value={fitmentModel}
+                      onChange={(e) => { setFitmentModel(e.target.value); setFitmentResult(null) }}
+                      disabled={!fitmentMake}
+                      className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 appearance-none disabled:opacity-40"
+                    >
+                      <option value="">Model</option>
+                      {(VEHICLE_MODELS_BY_MAKE[fitmentMake] || []).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  {fitmentResult && (
+                    <div className={`mt-3 flex items-center gap-2 text-sm font-semibold ${fitmentResult.fits ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {fitmentResult.fits ? <Check size={14} /> : <X size={14} />}
+                      {fitmentResult.fits
+                        ? `Yes — this fits your ${fitmentYear} ${fitmentMake} ${fitmentModel}`
+                        : `Not compatible — this product is not designed for ${fitmentYear} ${fitmentMake} ${fitmentModel}`
+                      }
+                    </div>
+                  )}
+                  {!fitmentResult && fitmentYear && fitmentMake && fitmentModel && (
+                    <button
+                      onClick={() => setFitmentResult({ fits: true })}
+                      className="mt-3 bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors"
+                    >
+                      Check Fitment
+                    </button>
+                  )}
                 </div>
-              )}
-              {!fitmentResult && fitmentYear && fitmentMake && fitmentModel && (
-                <button
-                  onClick={() => {
-                    // Universal accessories fit most cars
-                    setFitmentResult({ fits: true })
-                  }}
-                  className="mt-3 bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Check Fitment
-                </button>
-              )}
-            </div>
+              )
+            })()}
 
             {displayInStock && (
               <div className="flex items-center gap-4 mb-5">
